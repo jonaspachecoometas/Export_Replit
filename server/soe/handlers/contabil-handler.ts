@@ -3,7 +3,7 @@
 // Os lançamentos são salvos em soe_lancamentos e depois sincronizados
 // com o Motor Contábil Python (:8003).
 
-import { db } from "../../db/index";
+import { db } from "../../../db/index";
 import { soeLancamentos } from "@shared/schema";
 import type { SoeEventPayload } from "../event-bus";
 

@@ -2,7 +2,7 @@
 // Permite que lançamentos contábeis, alertas e automações
 // sejam disparados de forma desacoplada após cada operação SOE.
 
-import { db } from "../db/index";
+import { db } from "../../db/index";
 import { soeEventos } from "@shared/schema";
 import { contabilHandler } from "./handlers/contabil-handler";
 import { financialHandler } from "./handlers/financial-handler";

@@ -2,7 +2,7 @@
 // Intercepta chamadas às rotas SOE antes de despachar ao motor (Plus/ERPNext/local)
 // e aplica regras configuráveis de negócio, fiscal, contábil e financeiro.
 
-import { db } from "../../db/index";
+import { db } from "../../../db/index";
 import { soeRegras, soeEventos } from "@shared/schema";
 import { eq, and, isNull, or } from "drizzle-orm";
 import type { SoeRule, RuleContext, EnrichedPayload, SoeRuleCondition } from "./types";

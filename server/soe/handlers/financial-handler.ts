@@ -1,7 +1,7 @@
 // SOE — Handler Financeiro
 // Automações financeiras disparadas pelo Event Bus SOE.
 
-import { db } from "../../db/index";
+import { db } from "../../../db/index";
 import { finAccountsReceivable, finAccountsPayable } from "@shared/schema";
 import type { SoeEventPayload } from "../event-bus";
 
