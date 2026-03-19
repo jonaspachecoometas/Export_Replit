@@ -10,16 +10,35 @@ ARCADIA_DB_URL="${ARCADIA_DATABASE_URL:-postgresql://arcadia:arcadia123@db:5432/
 
 echo "[Superset Init] Aguardando PostgreSQL..."
 until python -c "
-import psycopg2, os, sys
+import psycopg2, os, sys, re
 try:
-    url = os.environ.get('DATABASE_URL', 'postgresql://arcadia:arcadia123@db:5432/arcadia_superset')
-    psycopg2.connect(url)
+    # Health check no banco 'postgres' (sempre existe), não no 'superset' que ainda não existe
+    url = os.environ.get('DATABASE_URL', 'postgresql://arcadia:SuaSenhaSegura@db:5432/superset')
+    check_url = re.sub(r'/[^/?]+(\?.*)?$', '/postgres', url)
+    psycopg2.connect(check_url)
 except Exception:
     sys.exit(1)
 " 2>/dev/null; do
   sleep 2
 done
 echo "[Superset Init] PostgreSQL disponível!"
+
+echo "[Superset Init] Criando banco superset se necessário..."
+python - <<'DBEOF'
+import psycopg2, os, re
+url = os.environ.get('DATABASE_URL', 'postgresql://arcadia:SuaSenhaSegura@db:5432/superset')
+conn_url = re.sub(r'/[^/?]+(\?.*)?$', '/postgres', url)
+conn = psycopg2.connect(conn_url)
+conn.autocommit = True
+cur = conn.cursor()
+cur.execute("SELECT 1 FROM pg_database WHERE datname = 'superset'")
+if not cur.fetchone():
+    cur.execute("CREATE DATABASE superset")
+    print("[Superset Init] Banco 'superset' criado.")
+else:
+    print("[Superset Init] Banco 'superset' já existe.")
+conn.close()
+DBEOF
 
 echo "[Superset Init] Rodando migrações do banco..."
 superset db upgrade
