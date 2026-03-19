@@ -8,10 +8,14 @@ const ADMIN_PASS = process.env.SUPERSET_ADMIN_PASSWORD || "arcadia2026";
 
 // Cache do service token (válido por 50 min)
 let cachedToken: string | null = null;
+let cachedCsrf: string | null = null;
+let cachedSession: string | null = null;
 let tokenExpiry = 0;
 
-async function getServiceToken(): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
+async function getServiceToken(): Promise<{ token: string; csrf: string; session: string }> {
+  if (cachedToken && cachedCsrf && cachedSession && Date.now() < tokenExpiry) {
+    return { token: cachedToken, csrf: cachedCsrf, session: cachedSession };
+  }
 
   const resp = await fetch(`${SUPERSET_URL}/api/v1/security/login`, {
     method: "POST",
@@ -22,8 +26,20 @@ async function getServiceToken(): Promise<string> {
   if (!resp.ok) throw new Error(`Falha ao autenticar no Superset (${resp.status})`);
   const data = await resp.json();
   cachedToken = data.access_token;
+
+  const csrfResp = await fetch(`${SUPERSET_URL}/api/v1/security/csrf_token/`, {
+    headers: { "Authorization": `Bearer ${cachedToken}` },
+  });
+  if (!csrfResp.ok) throw new Error(`Falha ao obter CSRF token (${csrfResp.status})`);
+  const csrfData = await csrfResp.json();
+  cachedCsrf = csrfData.result;
+
+  // Guardar o cookie de sessão retornado pelo Superset (necessário junto com X-CSRFToken)
+  const setCookie = csrfResp.headers.get("set-cookie") || "";
+  cachedSession = setCookie.split(";")[0]; // ex: "session=xxx"
+
   tokenExpiry = Date.now() + 50 * 60 * 1000;
-  return cachedToken!;
+  return { token: cachedToken!, csrf: cachedCsrf!, session: cachedSession };
 }
 
 export function registerSupersetRoutes(app: Express): void {
@@ -36,12 +52,14 @@ export function registerSupersetRoutes(app: Express): void {
       const { dashboardId } = req.body;
       if (!dashboardId) return res.status(400).json({ error: "dashboardId é obrigatório" });
 
-      const token = await getServiceToken();
+      const { token, csrf, session } = await getServiceToken();
       const user = req.user as any;
 
       // Resolve slug → dashboard ID → embedded UUID
+      // Enviar session cookie junto com o Bearer JWT para que Flask-Login identifique
+      // o admin via user_loader (necessário quando o papel Public tem can_read on Dashboard)
       const dashResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dashboardId}`, {
-        headers: { "Authorization": `Bearer ${token}` },
+        headers: { "Authorization": `Bearer ${token}`, "Cookie": session },
       });
       if (!dashResp.ok) {
         return res.status(404).json({ error: `Dashboard '${dashboardId}' não encontrado no Superset` });
@@ -50,7 +68,7 @@ export function registerSupersetRoutes(app: Express): void {
       const dbNumericId = dashData.result?.id;
 
       const embeddedResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dbNumericId}/embedded`, {
-        headers: { "Authorization": `Bearer ${token}` },
+        headers: { "Authorization": `Bearer ${token}`, "Cookie": session },
       });
       if (!embeddedResp.ok) {
         return res.status(404).json({ error: `Dashboard '${dashboardId}' não tem embedding habilitado` });
@@ -67,6 +85,8 @@ export function registerSupersetRoutes(app: Express): void {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
+          "X-CSRFToken": csrf,
+          "Cookie": session,
         },
         body: JSON.stringify({
           user: {
@@ -97,7 +117,7 @@ export function registerSupersetRoutes(app: Express): void {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
 
-      const token = await getServiceToken();
+      const { token } = await getServiceToken();
       const resp = await fetch(
         `${SUPERSET_URL}/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page_size:50)`,
         { headers: { "Authorization": `Bearer ${token}` } }

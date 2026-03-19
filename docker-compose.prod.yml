@@ -380,6 +380,12 @@ services:
       - "traefik.http.routers.superset.tls=true"
       - "traefik.http.routers.superset.tls.certresolver=letsencrypt"
       - "traefik.http.services.superset.loadbalancer.server.port=8088"
+      - "traefik.http.routers.superset-http.entrypoints=http"
+      - "traefik.http.routers.superset-http.rule=Host(`${SUPERSET_DOMAIN:-bi.onboardbi.com.br}`)"
+      - "traefik.http.routers.superset-http.middlewares=superset-https-redirect"
+      - "traefik.http.routers.superset-http.service=superset"
+      - "traefik.http.middlewares.superset-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.superset-https-redirect.redirectscheme.permanent=true"
     profiles: [bi]
 
 networks:

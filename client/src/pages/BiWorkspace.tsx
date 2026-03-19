@@ -2924,7 +2924,7 @@ export default function BiWorkspace() {
                     <p className="text-sm text-gray-500">SQL Lab avançado, 50+ tipos de gráfico, dashboards interativos</p>
                   </div>
                   <a
-                    href="/superset"
+                    href="https://bi.onboardbi.com.br"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#1f334d] text-white rounded-lg hover:bg-[#2a4466] transition-colors text-sm"
