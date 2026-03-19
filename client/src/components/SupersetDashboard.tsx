@@ -27,7 +27,8 @@ export function SupersetDashboard({
   const [status, setStatus] = useState<"loading" | "ready" | "error" | "unavailable">("loading");
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  const fetchGuestToken = useCallback(async (): Promise<string> => {
+  // Busca token e embeddedId (UUID) do backend
+  const fetchTokenData = useCallback(async (): Promise<{ token: string; embeddedId: string }> => {
     const resp = await fetch("/api/superset/guest-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -38,8 +39,7 @@ export function SupersetDashboard({
       const err = await resp.json().catch(() => ({ error: "Erro desconhecido" }));
       throw new Error(err.error || `HTTP ${resp.status}`);
     }
-    const { token } = await resp.json();
-    return token;
+    return resp.json();
   }, [dashboardId]);
 
   const loadDashboard = useCallback(async () => {
@@ -56,6 +56,9 @@ export function SupersetDashboard({
         return;
       }
 
+      // Resolve embeddedId (UUID) e obtém token inicial
+      const { embeddedId } = await fetchTokenData();
+
       // Importa SDK dinamicamente (só quando necessário)
       const { embedDashboard } = await import("@superset-ui/embedded-sdk");
 
@@ -65,10 +68,13 @@ export function SupersetDashboard({
       }
 
       sdkRef.current = await embedDashboard({
-        id: dashboardId,
+        id: embeddedId,   // UUID do embedded config (não o slug)
         supersetDomain: window.location.origin + "/superset",
         mountPoint: containerRef.current,
-        fetchGuestToken,
+        fetchGuestToken: async () => {
+          const { token } = await fetchTokenData();
+          return token;
+        },
         dashboardUiConfig: {
           hideTitle: true,
           hideChartControls: false,

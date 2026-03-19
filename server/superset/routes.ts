@@ -39,6 +39,29 @@ export function registerSupersetRoutes(app: Express): void {
       const token = await getServiceToken();
       const user = req.user as any;
 
+      // Resolve slug → dashboard ID → embedded UUID
+      const dashResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dashboardId}`, {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      if (!dashResp.ok) {
+        return res.status(404).json({ error: `Dashboard '${dashboardId}' não encontrado no Superset` });
+      }
+      const dashData = await dashResp.json();
+      const dbNumericId = dashData.result?.id;
+
+      const embeddedResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dbNumericId}/embedded`, {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      if (!embeddedResp.ok) {
+        return res.status(404).json({ error: `Dashboard '${dashboardId}' não tem embedding habilitado` });
+      }
+      const embeddedData = await embeddedResp.json();
+      const embeddedUuid = embeddedData.result?.uuid;
+
+      if (!embeddedUuid) {
+        return res.status(404).json({ error: `UUID de embedding não encontrado para '${dashboardId}'` });
+      }
+
       const guestResp = await fetch(`${SUPERSET_URL}/api/v1/security/guest_token/`, {
         method: "POST",
         headers: {
@@ -51,7 +74,7 @@ export function registerSupersetRoutes(app: Express): void {
             first_name: user?.name?.split(" ")[0] || "Arcádia",
             last_name: user?.name?.split(" ").slice(1).join(" ") || "User",
           },
-          resources: [{ type: "dashboard", id: dashboardId }],
+          resources: [{ type: "dashboard", id: embeddedUuid }],
           rls: user?.tenantId ? [{ clause: `tenant_id = ${user.tenantId}` }] : [],
         }),
       });
@@ -62,7 +85,7 @@ export function registerSupersetRoutes(app: Express): void {
       }
 
       const { token: guestToken } = await guestResp.json();
-      res.json({ token: guestToken, supersetUrl: "/superset" });
+      res.json({ token: guestToken, embeddedId: embeddedUuid, supersetUrl: "/superset" });
     } catch (err: any) {
       console.error("[Superset] guest-token error:", err.message);
       res.status(502).json({ error: err.message });
