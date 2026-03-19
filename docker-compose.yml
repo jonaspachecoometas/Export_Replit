@@ -35,6 +35,35 @@ services:
     volumes:
       - uploads:/app/uploads
 
+  # ── Superset BI ──────────────────────────────────────────────────────────────
+  superset:
+    build:
+      context: ./docker/superset
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-superset-secret-change-in-dev}
+      SQLALCHEMY_DATABASE_URI: postgresql://${PGUSER:-arcadia}:${PGPASSWORD:-SuaSenhaSegura}@db:5432/superset
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD:-SuaSenhaSegura}@db:5432/superset
+      PYTHONPATH: /app/pythonpath
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER:-admin}
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USER:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-arcadia2026}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@arcadia.app}
+      ARCADIA_DATABASE_URL: postgresql+psycopg2://${PGUSER:-arcadia}:${PGPASSWORD:-SuaSenhaSegura}@db:5432/${PGDATABASE:-arcadia}
+    command: ["/bin/bash", "/app/docker/init.sh"]
+    volumes:
+      - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./docker/superset/init.sh:/app/docker/init.sh:ro
+      - superset_home:/app/superset_home
+    ports:
+      - "8088:8088"
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: [bi]
+
 volumes:
   pgdata:
   uploads:
+  superset_home:

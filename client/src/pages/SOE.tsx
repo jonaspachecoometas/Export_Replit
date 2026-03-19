@@ -1,4 +1,5 @@
 import { BrowserFrame } from "@/components/Browser/BrowserFrame";
+import { SupersetDashboard } from "@/components/SupersetDashboard";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -1119,10 +1120,12 @@ export default function SOE() {
                   <RefreshCw className="w-4 h-4" />
                   Sincronização
                 </TabsTrigger>
-                <TabsTrigger value="config" className="gap-2" data-testid="tab-config">
-                  <UserCog className="w-4 h-4" />
-                  Configuração
-                </TabsTrigger>
+                {(user as any)?.role === "admin" && (
+                  <TabsTrigger value="config" className="gap-2" data-testid="tab-config">
+                    <UserCog className="w-4 h-4" />
+                    Configuração
+                  </TabsTrigger>
+                )}
               </TabsList>
             </div>
 
@@ -1299,6 +1302,14 @@ export default function SOE() {
                         </Button>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Arcádia Insights</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <SupersetDashboard dashboardId="executive-summary" height={480} />
                   </CardContent>
                 </Card>
               </TabsContent>

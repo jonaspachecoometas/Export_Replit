@@ -1,4 +1,5 @@
 import { BrowserFrame } from "@/components/Browser/BrowserFrame";
+import { SupersetDashboard } from "@/components/SupersetDashboard";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type TabType = "dashboard" | "payables" | "receivables" | "accounts" | "transactions" | "settings";
+type TabType = "dashboard" | "payables" | "receivables" | "accounts" | "transactions" | "settings" | "analise";
 
 interface BankAccount {
   id: number;
@@ -975,13 +976,14 @@ export default function Financeiro() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-4">
-          <TabsList className="grid grid-cols-6 w-full max-w-4xl">
+          <TabsList className="grid grid-cols-7 w-full max-w-4xl">
             <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="payables" data-testid="tab-payables">A Pagar</TabsTrigger>
             <TabsTrigger value="receivables" data-testid="tab-receivables">A Receber</TabsTrigger>
             <TabsTrigger value="accounts" data-testid="tab-accounts">Contas</TabsTrigger>
             <TabsTrigger value="transactions" data-testid="tab-transactions">Extrato</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">Configurações</TabsTrigger>
+            <TabsTrigger value="analise" data-testid="tab-analise">Análise BI</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">{renderDashboard()}</TabsContent>
@@ -990,6 +992,9 @@ export default function Financeiro() {
           <TabsContent value="accounts">{renderAccounts()}</TabsContent>
           <TabsContent value="transactions">{renderTransactions()}</TabsContent>
           <TabsContent value="settings">{renderSettings()}</TabsContent>
+          <TabsContent value="analise">
+            <SupersetDashboard dashboardId="financial-overview" />
+          </TabsContent>
         </Tabs>
 
         <Dialog open={showAccountDialog} onOpenChange={setShowAccountDialog}>

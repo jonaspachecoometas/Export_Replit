@@ -80,6 +80,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { SupersetDashboard } from "@/components/SupersetDashboard";
 
 interface BiStats {
   dataSources: number;
@@ -2890,7 +2891,7 @@ export default function BiWorkspace() {
                 <Layers className="w-4 h-4 mr-2" /> Staging
               </TabsTrigger>
               <TabsTrigger value="advanced" className="data-[state=active]:bg-[#c89b3c] data-[state=active]:text-[#1f334d] text-white/70">
-                <Settings className="w-4 h-4 mr-2" /> MetaSet
+                <Settings className="w-4 h-4 mr-2" /> Insights
               </TabsTrigger>
             </TabsList>
 
@@ -2919,28 +2920,20 @@ export default function BiWorkspace() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-[#1f334d]">MetaSet - Motor de BI</h2>
-                    <p className="text-sm text-gray-500">Acesso completo para criação manual de consultas SQL, gráficos e dashboards</p>
+                    <h2 className="text-lg font-semibold text-[#1f334d]">Arcádia Insights — Apache Superset</h2>
+                    <p className="text-sm text-gray-500">SQL Lab avançado, 50+ tipos de gráfico, dashboards interativos</p>
                   </div>
                   <a
-                    href="/api/bi/metaset/autologin"
+                    href="/superset"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#1f334d] text-white rounded-lg hover:bg-[#2a4466] transition-colors text-sm"
-                    data-testid="link-open-metaset-external"
+                    data-testid="link-open-superset-external"
                   >
                     <ArrowRight className="w-4 h-4" /> Abrir em Nova Aba
                   </a>
                 </div>
-                <div className="rounded-xl overflow-hidden border border-[#c89b3c]/20 bg-white shadow-sm" style={{ height: 'calc(100vh - 320px)' }}>
-                  <iframe
-                    src="/api/bi/metaset/autologin"
-                    className="w-full h-full border-0"
-                    title="MetaSet - Arcádia Insights"
-                    data-testid="iframe-metaset-advanced"
-                    allow="fullscreen"
-                  />
-                </div>
+                <SupersetDashboard dashboardId="executive-summary" height="calc(100vh - 320px)" />
               </div>
             </TabsContent>
           </Tabs>

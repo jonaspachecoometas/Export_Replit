@@ -1,4 +1,5 @@
 import { BrowserFrame } from "@/components/Browser/BrowserFrame";
+import { SupersetDashboard } from "@/components/SupersetDashboard";
 import { 
   Search, Grid, Settings, FileText, Plus, Star, 
   ChevronRight, Bell, Clock, CheckSquare, 
@@ -1169,6 +1170,15 @@ export default function Home() {
                   </Card>
                 )}
               </div>
+            </div>
+
+            {/* Arcádia Insights — Dashboard executivo */}
+            <div className="mt-6 px-6 pb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-slate-800">Arcádia Insights</h2>
+                <a href="/bi" className="text-xs text-indigo-500 hover:underline">Abrir BI completo →</a>
+              </div>
+              <SupersetDashboard dashboardId="executive-summary" height={400} />
             </div>
           </div>
         </main>

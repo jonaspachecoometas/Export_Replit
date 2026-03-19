@@ -52,7 +52,7 @@ export function registerSupersetRoutes(app: Express): void {
             last_name: user?.name?.split(" ").slice(1).join(" ") || "User",
           },
           resources: [{ type: "dashboard", id: dashboardId }],
-          rls: user?.tenantId ? [{ clause: `tenant_id = ${user.tenantId}`, type: "BASE_ROLE" }] : [],
+          rls: user?.tenantId ? [{ clause: `tenant_id = ${user.tenantId}` }] : [],
         }),
       });
 
