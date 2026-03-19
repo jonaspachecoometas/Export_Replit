@@ -4,6 +4,8 @@ import { db } from "../../db/index";
 import { customers, suppliers, products, salesOrders, purchaseOrders, erpSegments, erpConfig, insertErpSegmentSchema, insertErpConfigSchema, persons, personRoles, mobileDevices, posSales, posSaleItems, finAccountsReceivable, tenants, tenantEmpresas, type TenantFeatures } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
+import { soeRuleEngine } from "../soe/rule-engine/index";
+import { soeEventBus } from "../soe/event-bus";
 
 export function registerSoeRoutes(app: Express): void {
   app.use((req, res, next) => {
@@ -861,7 +863,18 @@ export function registerErpRoutes(app: Express): void {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const tenantId = req.user?.tenantId || 1;
-      const { orderNumber, customerId, orderDate, deliveryDate, status, subtotal, discount, tax, total, paymentMethod, notes } = req.body;
+
+      // SOE Rule Engine — enriquece payload antes de inserir
+      const enriched = await soeRuleEngine.apply("pre_sales_order", req.body, {
+        tenantId,
+        motor: "local",
+      });
+      if (enriched.validationErrors.length > 0) {
+        return res.status(422).json({ error: "Validação SOE falhou", detalhes: enriched.validationErrors });
+      }
+      const body = enriched.payload;
+
+      const { orderNumber, customerId, orderDate, deliveryDate, status, subtotal, discount, tax, total, paymentMethod, notes } = body;
       const [order] = await db.insert(salesOrders).values({
         tenantId,
         orderNumber, customerId, orderDate, deliveryDate, status, subtotal, discount, tax, total, paymentMethod, notes
@@ -901,6 +914,16 @@ export function registerErpRoutes(app: Express): void {
       }
       const id = parseInt(req.params.id);
       const tenantId = req.user?.tenantId || 1;
+
+      // SOE Rule Engine — valida e enriquece payload fiscal antes de emitir
+      const enriched = await soeRuleEngine.apply("pre_nfe_emissao", { ...req.body, _pedidoId: id }, {
+        tenantId,
+        motor: "local",
+      });
+      if (enriched.validationErrors.length > 0) {
+        return res.status(422).json({ error: "Validação fiscal SOE falhou", detalhes: enriched.validationErrors });
+      }
+
       const [updated] = await db.update(salesOrders)
         .set({ status: "invoiced" })
         .where(and(eq(salesOrders.id, id), eq(salesOrders.tenantId, tenantId)))
@@ -908,7 +931,16 @@ export function registerErpRoutes(app: Express): void {
       if (!updated) {
         return res.status(404).json({ error: "Sales order not found" });
       }
-      res.json({ success: true, order: updated, message: "NF-e gerada com sucesso." });
+
+      // SOE Event Bus — dispara lançamentos contábeis automáticos
+      soeEventBus.emit("nfe_emitida", {
+        tenantId,
+        empresaId: enriched.payload.empresaId || req.body.empresaId,
+        motorOrigem: "local",
+        dados: { ...enriched.payload, ...updated },
+      }).catch((e: any) => console.error("[routes] eventBus nfe_emitida:", e.message));
+
+      res.json({ success: true, order: updated, regrasSoe: enriched.appliedRules, message: "NF-e gerada com sucesso." });
     } catch (error) {
       console.error("Error generating NF-e:", error);
       res.status(500).json({ error: "Failed to generate NF-e" });
@@ -965,7 +997,15 @@ export function registerErpRoutes(app: Express): void {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const tenantId = req.user?.tenantId || 1;
-      const { orderNumber, supplierId, orderDate, expectedDate, status, subtotal, discount, tax, total, notes } = req.body;
+
+      // SOE Rule Engine — enriquece payload de compra (CFOP, tributação entrada)
+      const enriched = await soeRuleEngine.apply("pre_purchase_order", req.body, {
+        tenantId,
+        motor: "local",
+      });
+      const body = enriched.payload;
+
+      const { orderNumber, supplierId, orderDate, expectedDate, status, subtotal, discount, tax, total, notes } = body;
       const [order] = await db.insert(purchaseOrders).values({
         tenantId,
         orderNumber, supplierId, orderDate, expectedDate, status, subtotal, discount, tax, total, notes
