@@ -1,0 +1,92 @@
+modules = ["nodejs-20", "web", "python-3.11", "python3", "postgresql-16"]
+run = "npm run dev"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["glibcLocales", "libiconv", "libxcrypt", "openssl", "pkg-config", "unzip", "zlib", "zip"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5904
+externalPort = 6800
+
+[[ports]]
+localPort = 8001
+externalPort = 3001
+
+[[ports]]
+localPort = 8002
+externalPort = 3000
+
+[[ports]]
+localPort = 8003
+externalPort = 3003
+
+[[ports]]
+localPort = 8004
+externalPort = 4200
+
+[[ports]]
+localPort = 8005
+externalPort = 3002
+
+[[ports]]
+localPort = 8006
+externalPort = 5173
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8088
+externalPort = 5000
+
+[env]
+PORT = "5000"
+
+[deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+publicDir = "dist/public"
+run = ["npm", "run", "start"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[agent]
+mockupState = "FULLSTACK"
+integrations = ["javascript_openai_ai_integrations:2.0.0", "github:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+FISCO_PYTHON_URL = "http://localhost:8002"
+FISCO_PORT = "8002"
+CONTABIL_PYTHON_URL = "http://localhost:8003"
+PEOPLE_PYTHON_URL = "http://localhost:8004"
+CONTABIL_PORT = "8003"
+PEOPLE_PORT = "8004"
+SSO_SECRET = "arcadia-sso-secret-2024-plus-integration-key-secure"

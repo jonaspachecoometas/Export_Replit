@@ -1,0 +1,79 @@
+node_modules/
+dist/
+.DS_Store
+.env
+.env.local
+.env.production
+
+# Replit specific
+.cache/
+.upm/
+.config/
+.local/
+.pythonlibs/
+.replit
+replit.nix
+
+# Build artifacts
+server/public/
+vite.config.ts.*
+
+# Backups and archives
+*.tar.gz
+*.zip
+plus_backup_*/
+
+# Metabase
+metabase/metabase.jar
+metabase/metabase-data.*
+metabase/plugins/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+uv.lock
+
+# WhatsApp sessions
+whatsapp-sessions/
+
+# Uploads (user-generated content)
+uploads/
+plus/public/uploads/
+plus/storage/logs/
+
+# PHP dependencies (install via composer)
+plus/vendor/
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+
+# Attached assets
+attached_assets/
+
+# Package lock (regenerated on install)
+package-lock.json
+
+# Documentation files (except essential)
+MAPA_*.md
+AUDITORIA_*.md
+AVALIACAO_*.md
+DOCUMENTATION.md
+HOSPEDAGEM.md
+PLANO_*.md
+RELATORIO_*.md
+REQUISITOS_*.md
+*.pdf
+*.txt
+!README.md
+!replit.md

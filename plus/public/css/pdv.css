@@ -1,0 +1,351 @@
+.active {
+    background: rgb(85, 114, 245) !important;
+    color: #fff !important;
+}
+
+#salvar_venda:hover {
+    cursor: pointer;
+}
+
+.qrcode{
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 50%;
+}
+
+.btn-info-produto{
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+}
+
+.btn-info-produto:hover{
+    background: #4254BA;
+}
+
+.btn-bolinha-flutuante {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 60px;
+    height: 60px;
+    background: #4254BA;       /* Cor padrão Jidox */
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    cursor: pointer;
+    z-index: 99999;
+    transition: all .2s ease-in-out;
+}
+
+/* Efeito hover */
+.btn-bolinha-flutuante:hover {
+    transform: scale(1.08);
+    filter: brightness(1.1);
+}
+
+/* Ajustes para mobile */
+@media (max-width: 768px) {
+    .btn-bolinha-flutuante {
+        bottom: 85px;   /* sobe para não bater no menu mobile */
+        right: 20px;
+        width: 55px;
+        height: 55px;
+        font-size: 26px;
+    }
+}
+
+:root{
+    --pdv-primary: #6C5CE7;       
+    --pdv-primary-soft: #F3EFFF;   
+    --pdv-success: #00B894;
+    --pdv-danger: #FF7675;
+    --pdv-dark: #2D3436;
+    --pdv-bg: #F5F6FB;
+    --pdv-border: #E3E6F0;
+}
+body {
+    background: var(--pdv-bg);
+}
+.widget-icon-box {
+    border: none;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.widget-icon-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.10);
+}
+
+.widget-icon-box h5 {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    color: #94A3B8 !important;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.btn-cat{
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #64748B;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-right: 8px;
+    white-space: nowrap;
+    transition: all .18s ease;
+}
+
+.btn-cat:hover{
+    background: var(--pdv-primary-soft);
+    color: var(--pdv-primary);
+    border-color: var(--pdv-primary-soft);
+}
+
+/* ATENÇÃO: agora o ativo é .btn-cat.active, não .active global */
+.btn-cat.active{
+    background: var(--pdv-primary);
+    color: #fff !important;
+    border-color: var(--pdv-primary);
+    box-shadow: 0 6px 14px rgba(108,92,231,0.45);
+}
+
+/* campo “Leitor ativado” */
+.leitor_ativado,
+.leitor_desativado {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.btn-primary{
+    background: var(--pdv-primary);
+    border-color: var(--pdv-primary);
+    font-weight: 600;
+}
+
+.btn-primary:hover{
+    background: #5944d8;
+    border-color: #5944d8;
+}
+
+.btn-success{
+    background: var(--pdv-success);
+    border-color: var(--pdv-success);
+    font-weight: 600;
+}
+
+.btn-danger{
+    background: var(--pdv-danger);
+    border-color: var(--pdv-danger);
+    font-weight: 600;
+}
+
+.btn-dark{
+    font-weight: 600;
+}
+
+.btn-warning,
+.btn-info,
+.btn-light{
+    font-weight: 600;
+}
+
+#salvar_venda,
+#editar_venda{
+    border-radius: 8px;
+    font-size: 1rem;
+    padding: 10px 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    background: linear-gradient(135deg,#00B894,#00CEC9);
+    border: none;
+    box-shadow: 0 12px 28px rgba(0, 184, 148, 0.45);
+}
+
+#salvar_venda[disabled],
+#editar_venda[disabled]{
+    background: #9CA3AF;
+    box-shadow: none;
+}
+
+#salvar_venda:hover:not([disabled]),
+#editar_venda:hover:not([disabled]){
+    cursor: pointer;
+    transform: translateY(-1px);
+}
+
+
+.card-produto {
+    position: relative;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    padding-bottom: 8px;
+    cursor: pointer;
+    transition: .15s;
+}
+
+.card-produto:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+/* IMAGEM PADRONIZADA */
+.card-produto-img {
+    width: 100%;
+    height: 100px;  /* você pode mudar para 150/160 se quiser maior */
+    border-radius: 14px 14px 0 0;
+    overflow: hidden;
+    background: #fff;  /* remove fundo cinza atrás da imagem */
+    padding: 0;        /* remove padding */
+}
+
+.card-produto-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;       /* preenche completamente */
+    object-position: center; /* foca no centro */
+    display: block;
+}
+
+
+/* NOME */
+.nome-produto {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #1f2937;
+    text-align: center;
+    margin: 6px 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* PREÇO */
+.preco-produto {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #059669;
+    margin: 0;
+    text-align: center;
+}
+
+.cliente_selecionado:hover, .funcionario_selecionado:hover{
+    cursor: pointer;
+}
+
+/* BADGE DE PROMOÇÃO */
+.badge-promocao {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: linear-gradient(135deg, #ff7a18, #ff3d00);
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    font-weight: bold;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(255, 61, 0, 0.4);
+    z-index: 10;
+}
+
+#recebimentos .modal-body {
+    overflow-y: hidden; 
+}
+
+#recebimentos .content {
+    max-height: calc(100vh - 260px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+}
+
+#recebimentos .table-responsive {
+    overflow-x: auto;
+    overflow-y: visible !important;
+}
+
+.modal-produto-premium{
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+}
+
+.img-produto-premium{
+    width: 100%;
+    max-height: 260px;
+    object-fit: cover;
+    border-radius: 16px;
+    background: #f5f6fa;
+}
+
+.price-box{
+    background: #f4f6fb;
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+}
+
+.price-box small{
+    display: block;
+    color: #8a8fa7;
+}
+
+.price-box strong{
+    font-size: 20px;
+}
+
+.price-box.venda{
+    background: linear-gradient(135deg, #4254BA, #6c7cff);
+    color: #fff;
+}
+
+.info-grid{
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 12px;
+}
+
+.info-grid div{
+    background: #f9fafc;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.info-grid span{
+    display: block;
+    font-size: 12px;
+    color: #8a8fa7;
+}
+
+.info-grid strong{
+    font-size: 14px;
+}

@@ -1,0 +1,94 @@
+# LiteLLM — Gateway unificado de LLMs para o Arcádia Suite
+# Documentação: https://docs.litellm.ai/docs/proxy/configs
+#
+# ESTRATÉGIA DE SOBERANIA DOS DADOS:
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  TIER 1 (soberania total): LLMFit — modelos fine-tuned locais           │
+# │  TIER 2 (soberania total): Ollama — modelos open source no servidor     │
+# │  TIER 3 (opt-in): Providers externos — só com configuração explícita    │
+# └─────────────────────────────────────────────────────────────────────────┘
+# O Manus, Autonomous Agents e todos os serviços chamam APENAS este proxy.
+# Nunca chamam APIs externas diretamente.
+
+model_list:
+
+  # ── TIER 1: LLMFit (modelos fine-tuned locais — máxima soberania) ────────────
+  - model_name: arcadia-finetuned
+    litellm_params:
+      model: openai/llama3.2:3b
+      api_base: os.environ/LLMFIT_BASE_URL
+      api_key: os.environ/LLMFIT_API_KEY
+
+  - model_name: arcadia-embed
+    litellm_params:
+      model: openai/nomic-embed-text:latest
+      api_base: os.environ/LLMFIT_BASE_URL
+      api_key: os.environ/LLMFIT_API_KEY
+
+  # ── TIER 2: Ollama (LLMs locais — soberania total) ───────────────────────────
+  - model_name: llama3.2
+    litellm_params:
+      model: ollama/llama3.2:3b
+      api_base: os.environ/OLLAMA_BASE_URL
+
+  - model_name: nomic-embed-text
+    litellm_params:
+      model: ollama/nomic-embed-text
+      api_base: os.environ/OLLAMA_BASE_URL
+
+  # Alias OpenAI-compatible para embedding (Manus usa este nome por padrão)
+  - model_name: text-embedding-3-small
+    litellm_params:
+      model: ollama/nomic-embed-text
+      api_base: os.environ/OLLAMA_BASE_URL
+
+  # ── TIER 3: OpenAI (opt-in — só ativo se OPENAI_API_KEY configurado) ─────────
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  # ── TIER 3: Anthropic (opt-in — descomente para habilitar) ───────────────────
+  # - model_name: claude-sonnet
+  #   litellm_params:
+  #     model: anthropic/claude-sonnet-4-6
+  #     api_key: os.environ/ANTHROPIC_API_KEY
+
+  # ── TIER 3: Groq (opt-in — inferência rápida sem dados persistidos) ──────────
+  # - model_name: groq-llama
+  #   litellm_params:
+  #     model: groq/llama-3.3-70b-versatile
+  #     api_key: os.environ/GROQ_API_KEY
+
+  # ── Modelo padrão do Arcádia (Manus usa este) ─────────────────────────────────
+  # Prioridade: LLMFit (TIER 1) → Ollama (TIER 2 — fallback)
+  - model_name: arcadia-default
+    litellm_params:
+      model: openai/llama3.2:3b
+      api_base: os.environ/LLMFIT_BASE_URL
+      api_key: os.environ/LLMFIT_API_KEY
+
+router_settings:
+  routing_strategy: least-busy
+  fallbacks:
+    - {"gpt-4o": ["llama3.2"]}
+    - {"gpt-4o-mini": ["llama3.2"]}
+    - {"arcadia-default": ["llama3.2"]}
+    - {"arcadia-finetuned": ["llama3.2"]}
+    - {"arcadia-embed": ["nomic-embed-text"]}
+
+litellm_settings:
+  drop_params: true
+  request_timeout: 120
+  set_verbose: false
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  # Habilita interface de gestão do LiteLLM (opcional)
+  # ui_access_mode: "all"

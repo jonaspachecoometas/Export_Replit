@@ -1,0 +1,47 @@
+# Dockerfile compartilhado para todos os microserviços Python
+# Uso: docker build -f Dockerfile.python --build-arg SERVICE=contabil .
+# Ou via docker-compose com a variável SERVICE_NAME
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Dependências de sistema necessárias para psycopg2, signxml e playwright
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    libxml2-dev \
+    libxslt-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar dependências Python
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir ".[all]" 2>/dev/null || pip install --no-cache-dir \
+    fastapi>=0.128.0 \
+    uvicorn>=0.40.0 \
+    psycopg2-binary>=2.9.11 \
+    pandas>=2.3.3 \
+    numpy>=2.4.1 \
+    pydantic>=2.12.5 \
+    python-dotenv \
+    requests \
+    httpx
+
+# Copiar código dos serviços
+COPY server/python/ ./server/python/
+COPY shared/ ./shared/
+
+# SERVICE_NAME deve ser: contabil | bi | automation | fisco | people
+ENV SERVICE_NAME=contabil
+ENV SERVICE_PORT=8000
+
+# Script de entrada que seleciona o serviço correto
+COPY docker/python-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE ${SERVICE_PORT}
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${SERVICE_PORT}/health')" || exit 1
+
+ENTRYPOINT ["/entrypoint.sh"]

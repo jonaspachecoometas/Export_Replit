@@ -1,0 +1,491 @@
+.btn-sair-pdv {
+	position: absolute;
+	top: 5px;
+	right: 5px;
+	padding: 0.1rem 0.3rem;
+	font-size: 0.65rem;
+	z-index: 100;
+	opacity: 0.7;
+}
+
+
+.table {
+	border-collapse: separate;
+	border-spacing: 0 6px;
+	width: 100%;
+	font-size: 12px;
+
+}
+
+.table thead th:first-child {
+    border-top-left-radius: 8px;
+}
+.table thead th:last-child {
+    border-top-right-radius: 8px;
+}
+.table thead th {
+    font-size: 11px;
+    font-weight: 600;
+    /*color: #ffffff;*/
+    text-transform: uppercase;
+    padding: 8px 8px;
+    border-bottom: none;
+}
+
+.table thead th {
+	font-weight: 600;
+	padding: 12px 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+}
+
+.table tbody tr {
+	background: var(--tbl-row-bg, #fff);
+	box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+	transition: all 0.2s ease-in-out;
+}
+
+.table tbody tr:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+}
+
+.table td {
+	padding: 10px 12px;
+	border-top: none;
+	border-bottom: 1px solid var(--tbl-border, #f2f2f2);
+	color: var(--tbl-text, #333);
+
+}
+
+.table td:first-child {
+	border-radius: 8px 0 0 8px;
+}
+
+#codBarras {
+	font-size: 1.3em;
+	height: 40px;
+	/*border: 2px solid #4e73df;*/
+	font-weight: 600;
+	padding-left: 15px;
+	letter-spacing: 0.5px;
+}
+
+.categorias-header {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    position: relative;
+}
+
+.categorias-header span {
+    background: #fff;
+    padding: 0 10px;
+    position: relative;
+    z-index: 2;
+}
+
+.categorias-header::before {
+    content: "";
+    height: 1px;
+    width: 100%;
+    background: #ddd;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    z-index: 1;
+}
+
+/* CARD NOVO */
+.card-produto {
+    position: relative;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    padding-bottom: 8px;
+    cursor: pointer;
+    transition: .15s;
+}
+
+.card-produto:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+/* IMAGEM PADRONIZADA */
+.card-produto-img {
+    width: 100%;
+    height: 100px;  /* você pode mudar para 150/160 se quiser maior */
+    border-radius: 14px 14px 0 0;
+    overflow: hidden;
+    background: #fff;  /* remove fundo cinza atrás da imagem */
+    padding: 0;        /* remove padding */
+}
+
+.card-produto-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;       /* preenche completamente */
+    object-position: center; /* foca no centro */
+    display: block;
+}
+
+
+/* NOME */
+.nome-produto {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #1f2937;
+    text-align: center;
+    margin: 6px 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* PREÇO */
+.preco-produto {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #059669;
+    margin: 0;
+    text-align: center;
+}
+
+
+
+/* BADGE DE PROMOÇÃO */
+.badge-promocao {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: linear-gradient(135deg, #ff7a18, #ff3d00);
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    font-weight: bold;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(255, 61, 0, 0.4);
+    z-index: 10;
+}
+
+/* ===== ROW DO PRODUTO ====== */
+.line-product {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    margin-bottom: 6px;
+    padding: 8px 6px;
+}
+
+/* melhora alinhamento vertical */
+.line-product td {
+    vertical-align: middle !important;
+}
+
+/* ===== IMAGEM DO PRODUTO ===== */
+.line-product img {
+    width: 42px !important;
+    height: 42px !important;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* ===== INPUT NOME PRODUTO ===== */
+.line-product input[name="produto_nome[]"] {
+    width: 100%;
+    background: #f1f3f7;
+    border: 1px solid #d6d8de;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* ===== QUANTIDADE ===== */
+.line-product .input-group {
+    height: 35px;            /* menor */
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #d1d5db;
+}
+
+/* BOTÕES */
+.line-product .input-group .btn {
+    width: 40px;             /* bem menor */
+    height: 34px;             /* bem menor */
+    padding: 0;
+    font-size: 18px;         /* menor */
+    font-weight: bold;
+    border-radius: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.line-product .input-group input {
+    text-align: center;
+    background: #f9fafb;
+    border: 0 !important;
+    font-weight: 600;
+}
+
+/* botão de menos */
+#btn-subtrai {
+    background: #ef4444 !important;
+    border-color: #ef4444 !important;
+}
+
+/* botão de mais */
+#btn-incrementa {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+}
+
+/* ===== PREÇO / SUBTOTAL ===== */
+.line-product .value-unit,
+.line-product .subtotal-item {
+    text-align: center;
+    background: #f1f5f9;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #777;
+}
+
+/* ===== BOTÃO DE EXCLUIR ===== */
+.line-product .btn-delete-row {
+    background: #ef4444 !important;
+    border-color: #ef4444 !important;
+    color: white !important;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(239,68,68,0.4);
+}
+
+.line-product .btn-delete-row:hover {
+    opacity: .9;
+    transform: scale(1.05);
+}
+
+.cliente-info {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    margin-top: 5px;
+    margin-bottom: -15px;
+    gap: 3px;
+    color: #4b5563;
+}
+
+/* Ícone */
+.cliente-info i {
+    font-size: 1.2rem;
+    color: #6366f1 !important;
+}
+
+/* Texto "Cliente:" */
+.cliente-info .label-text {
+    font-weight: 500;
+    margin-top: 5px;
+}
+
+/* Nome do cliente */
+.cliente-info .cliente_selecionado {
+    font-weight: 600;
+    color: #111827;
+    cursor: pointer;
+    margin-top: 5px;
+}
+
+/* Quando for "selecionar cliente" */
+.cliente-info .cliente_selecionado[data-bs-toggle] {
+    color: #2563eb;          /* azul link */
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.cliente-info .cliente_selecionado[data-bs-toggle]:hover {
+    opacity: 0.8;
+}
+
+
+/* Top boxes */
+.info-box {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+.info-box .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+}
+
+.info-box .value {
+    font-size: 32px;
+    font-weight: 700;
+}
+
+
+/* PDV Modern Theme - Tema moderno para PDV */
+
+:root {
+  --bg-color: #ffffff;
+  --text-color: #333;
+  --text-muted: #6c757d;
+  --primary-color: #4e73df;
+  --secondary-color: #858796;
+  --success-color: #1cc88a;
+  --danger-color: #e74a3b;
+  --warning-color: #f6c23e;
+  --info-color: #36b9cc;
+  --light-color: #f8f9fa;
+  --dark-color: #5a5c69;
+  --border-color: #e3e6f0;
+  --card-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  --card-radius: 12px;
+}
+
+[data-theme="dark"] {
+  --bg-color: #1e1e2f;
+  --text-color: #e1e1e6;
+  --text-muted: #a8a9b4;
+  --primary-color: #6c8eff;
+  --secondary-color: #9ca3af;
+  --success-color: #23d997;
+  --danger-color: #f76c5e;
+  --warning-color: #ffd950;
+  --info-color: #4cceeb;
+  --light-color: #2a2a40;
+  --dark-color: #e1e1e6;
+  --border-color: #3a3a5a;
+  --card-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Estilo para cartÃ£o moderno */
+.card {
+  border-radius: var(--card-radius) !important;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+/* Destaque para cartÃ£o de valores totais */
+.total-venda-card {
+  background: linear-gradient(135deg, var(--primary-color), #1e2f98);
+  color: white;
+  border-radius: var(--card-radius);
+}
+
+.total-venda-card .text-gray-800 {
+  color: white !important;
+}
+
+.card-header {
+  border-radius: calc(var(--card-radius) - 1px) calc(var(--card-radius) - 1px) 0 0 !important;
+  background-color: rgba(var(--primary-color-rgb), 0.05);
+}
+
+/* BotÃµes modernos */
+.btn {
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+
+/* AnimaÃ§Ãµes e transiÃ§Ãµes */
+.fade-in {
+  opacity: 0;
+  transform: translateY(5px);
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Badges e pills modernos */
+.badge {
+  padding: 0.4em 0.6em;
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+.badge-pill {
+  border-radius: 50rem;
+}
+
+/* Seletor de tema */
+.theme-toggle {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1030;
+  display: none;
+}
+
+.theme-toggle-btn {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] {
+  --primary-color-rgb: 108, 142, 255;
+  --success-color-rgb: 35, 217, 151;
+  --danger-color-rgb: 247, 108, 94;
+  --warning-color-rgb: 255, 217, 80;
+}
+
+
+
+/* Melhorias para o painel de valor total */
+.h2.font-weight-bold {
+  font-size: 1.8rem;
+}
+
+#valor-troco {
+  animation: pulse 1.5s infinite alternate when visible;
+  color: #e74a3b !important;
+  text-shadow: 0px 0px 1px rgba(0, 0, 0, 0.3);
+}
+
+#valor-troco.text-success {
+  color: #1cc88a !important;
+  text-shadow: 0px 0px 1px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+} 

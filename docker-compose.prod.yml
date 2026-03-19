@@ -1,0 +1,404 @@
+# ─── Arcádia Suite — Produção (Coolify) ───────────────────────────────────────
+# Este arquivo é usado pelo Coolify para deploy automático.
+# NÃO inclui volumes de código-fonte — só artefatos de build.
+# Configurar no Coolify: Environment Variables para todas as vars ${...}
+
+name: arcadia-prod
+
+services:
+
+  # ── Banco de dados com pgvector ─────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    restart: always
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-arcadia}
+      POSTGRES_USER: ${PGUSER:-arcadia}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-pgvector.sql:/docker-entrypoint-initdb.d/01-pgvector.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-arcadia}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - arcadia-internal
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - arcadia-internal
+
+  # ── App principal ─────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/${PGDATABASE:-arcadia}
+      REDIS_URL: redis://redis:6379
+      DOCKER_MODE: "true"
+      CONTABIL_PYTHON_URL: http://contabil:8003
+      BI_PYTHON_URL: http://bi:8004
+      AUTOMATION_PYTHON_URL: http://automation:8005
+      FISCO_PYTHON_URL: http://fisco:8002
+      PYTHON_SERVICE_URL: http://embeddings:8001
+      SESSION_SECRET: ${SESSION_SECRET}
+      SSO_SECRET: ${SSO_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LITELLM_BASE_URL: http://litellm:4000
+      LITELLM_API_KEY: ${LITELLM_API_KEY}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      # ── Manus Agent — aponta para LiteLLM como gateway unificado ──────────
+      AI_INTEGRATIONS_OPENAI_BASE_URL: http://litellm:4000/v1
+      AI_INTEGRATIONS_OPENAI_API_KEY: ${LITELLM_API_KEY}
+      # ── Arcádia Plus (Laravel) ─────────────────────────────────────────────
+      PLUS_HOST: plus
+      PLUS_PORT: "8080"
+      PLUS_AUTO_START: "false"   # container separado em prod
+      SSO_PLUS_BASE_URL: http://plus:8080
+      # ── Apache Superset ───────────────────────────────────────────────────
+      SUPERSET_HOST: superset
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      # ── ERPNext ───────────────────────────────────────────────────────────
+      ERPNEXT_PROXY_ENABLED: ${ERPNEXT_PROXY_ENABLED:-false}
+      ERPNEXT_CONTAINER_HOST: erpnext
+      ERPNEXT_URL: ${ERPNEXT_URL:-http://erpnext:8080}
+      ERPNEXT_API_KEY: ${ERPNEXT_API_KEY:-}
+      ERPNEXT_API_SECRET: ${ERPNEXT_API_SECRET:-}
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - arcadia-internal
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.arcadia.entrypoints=https"
+      - "traefik.http.routers.arcadia.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.arcadia.tls=true"
+      - "traefik.http.routers.arcadia.tls.certresolver=letsencrypt"
+      - "traefik.http.services.arcadia.loadbalancer.server.port=5000"
+
+  # ── Arcádia Plus (Laravel + MySQL) ──────────────────────────────────────────
+  # Perfil `plus` — suba com: docker compose --profile plus up
+  plus-db:
+    image: mysql:8.0
+    restart: always
+    profiles: [plus]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${PLUS_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${PLUS_DB_DATABASE:-arcadia_plus}
+      MYSQL_USER: ${PLUS_DB_USER:-plus}
+      MYSQL_PASSWORD: ${PLUS_DB_PASSWORD}
+    volumes:
+      - plus_db:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${PLUS_DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - arcadia-internal
+
+  plus:
+    image: ${PLUS_IMAGE:-php:8.3-apache}
+    restart: always
+    profiles: [plus]
+    environment:
+      APP_ENV: production
+      APP_KEY: ${PLUS_APP_KEY}
+      APP_URL: https://${DOMAIN}/plus
+      DB_HOST: plus-db
+      DB_DATABASE: ${PLUS_DB_DATABASE:-arcadia_plus}
+      DB_USERNAME: ${PLUS_DB_USER:-plus}
+      DB_PASSWORD: ${PLUS_DB_PASSWORD}
+      SESSION_DRIVER: redis
+      REDIS_HOST: redis
+      ARCADIA_URL: https://${DOMAIN}
+      ARCADIA_SSO_SECRET: ${SSO_SECRET}
+    volumes:
+      - plus_storage:/var/www/html/storage
+    depends_on:
+      plus-db:
+        condition: service_healthy
+    networks:
+      - arcadia-internal
+
+  # ── ERPNext (Frappe Framework) ───────────────────────────────────────────────
+  # Perfil `erpnext` — suba com: docker compose --profile erpnext up
+  erpnext-db:
+    image: mariadb:10.6
+    restart: always
+    profiles: [erpnext]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ERPNEXT_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: _frappe
+      MYSQL_USER: frappe
+      MYSQL_PASSWORD: ${ERPNEXT_DB_PASSWORD}
+    volumes:
+      - erpnext_db:/var/lib/mysql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --skip-character-set-client-handshake
+      --skip-innodb-read-only-compressed
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${ERPNEXT_DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - arcadia-internal
+
+  erpnext:
+    image: frappe/erpnext:version-15
+    restart: always
+    profiles: [erpnext]
+    environment:
+      FRAPPE_SITE_NAME_HEADER: erpnext.local
+      ERPNEXT_DB_ROOT_PASSWORD: ${ERPNEXT_DB_ROOT_PASSWORD}
+      ERPNEXT_ADMIN_PASSWORD: ${ERPNEXT_ADMIN_PASSWORD}
+    volumes:
+      - erpnext_sites:/home/frappe/frappe-bench/sites
+      - erpnext_logs:/home/frappe/frappe-bench/logs
+      - ./docker/erpnext/init.sh:/usr/local/bin/init-erpnext.sh:ro
+    depends_on:
+      erpnext-db:
+        condition: service_healthy
+    command: ["/bin/bash", "/usr/local/bin/init-erpnext.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/method/frappe.ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - arcadia-internal
+
+
+  # ── Microserviços Python ─────────────────────────────────────────────────────
+  contabil:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    restart: always
+    environment:
+      SERVICE_NAME: contabil
+      SERVICE_PORT: 8003
+      CONTABIL_PORT: 8003
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/${PGDATABASE:-arcadia}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - arcadia-internal
+
+  bi:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    restart: always
+    environment:
+      SERVICE_NAME: bi
+      SERVICE_PORT: 8004
+      BI_PORT: 8004
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/${PGDATABASE:-arcadia}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - arcadia-internal
+
+  automation:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    restart: always
+    environment:
+      SERVICE_NAME: automation
+      SERVICE_PORT: 8005
+      AUTOMATION_PORT: 8005
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/${PGDATABASE:-arcadia}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - arcadia-internal
+
+  fisco:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    restart: always
+    environment:
+      SERVICE_NAME: fisco
+      SERVICE_PORT: 8002
+      FISCO_PORT: 8002
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/${PGDATABASE:-arcadia}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - arcadia-internal
+
+  embeddings:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    restart: always
+    environment:
+      SERVICE_NAME: embeddings
+      SERVICE_PORT: 8001
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/${PGDATABASE:-arcadia}
+      LITELLM_BASE_URL: http://litellm:4000
+      LITELLM_API_KEY: ${LITELLM_API_KEY}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - arcadia-internal
+
+  # ── LiteLLM (gateway unificado de LLM — soberania dos dados) ─────────────────
+  # Roteia: LLMFit (fine-tuned) → Ollama (local) → externo (opt-in)
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    restart: always
+    volumes:
+      - ./docker/litellm-config.yaml:/app/config.yaml
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LITELLM_MASTER_KEY: ${LITELLM_API_KEY}
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/litellm
+      # Ollama: se instalado no host use http://host-gateway:11434
+      # Se usar container Docker, mantém http://ollama:11434
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      # LLMFit: URL do serviço de modelos fine-tuned
+      LLMFIT_BASE_URL: ${LLMFIT_BASE_URL:-}
+      LLMFIT_API_KEY: ${LLMFIT_API_KEY:-}
+      # Providers externos opcionais (soberania: só habilitados se configurados)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - arcadia-internal
+      - coolify
+
+  # ── Ollama (LLMs locais — soberania total) ────────────────────────────────────
+  # OPÇÃO A (padrão): Ollama como container Docker
+  # OPÇÃO B: Ollama no host → comente este serviço e defina
+  #          OLLAMA_BASE_URL=http://host-gateway:11434 nas env vars
+  ollama:
+    image: ollama/ollama:latest
+    restart: always
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - arcadia-internal
+    # Remova 'profiles: [ai]' para ativar por padrão no deploy
+    profiles: [ai]
+
+  # ── Open WebUI (interface para Ollama + LLMFit) ───────────────────────────────
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: always
+    environment:
+      # Pode apontar para LiteLLM para ter acesso a todos os modelos via WebUI
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OPENAI_API_BASE_URL: http://litellm:4000/v1
+      OPENAI_API_KEY: ${LITELLM_API_KEY}
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY}
+    volumes:
+      - open_webui_data:/app/backend/data
+    depends_on:
+      - litellm
+    networks:
+      - arcadia-internal
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webui.rule=Host(`ai.${DOMAIN}`)"
+      - "traefik.http.routers.webui.tls=true"
+      - "traefik.http.routers.webui.tls.certresolver=letsencrypt"
+      - "traefik.http.services.webui.loadbalancer.server.port=8080"
+    profiles: [ai]
+
+  # ── Superset BI ───────────────────────────────────────────────────────────────
+  superset:
+    build:
+      context: ./docker/superset
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SQLALCHEMY_DATABASE_URI: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/superset
+      DATABASE_URL: postgresql://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/superset
+      PYTHONPATH: /app/pythonpath
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:-admin}
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USERNAME:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@onboardbi.com.br}
+      ARCADIA_DATABASE_URL: postgresql+psycopg2://${PGUSER:-arcadia}:${PGPASSWORD}@db:5432/${PGDATABASE:-arcadia}
+    command: ["/bin/bash", "/app/docker/init.sh"]
+    volumes:
+      - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./docker/superset/init.sh:/app/docker/init.sh:ro
+      - superset_home:/app/superset_home
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - arcadia-internal
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.superset.entrypoints=https"
+      - "traefik.http.routers.superset.rule=Host(`${SUPERSET_DOMAIN:-bi.onboardbi.com.br}`)"
+      - "traefik.http.routers.superset.tls=true"
+      - "traefik.http.routers.superset.tls.certresolver=letsencrypt"
+      - "traefik.http.services.superset.loadbalancer.server.port=8088"
+    profiles: [bi]
+
+networks:
+  arcadia-internal:
+    driver: bridge
+  coolify:
+    external: true
+
+volumes:
+  pgdata:
+  redis_data:
+  ollama_models:
+  open_webui_data:
+
+
+
+  plus_db:
+  plus_storage:
+  superset_home:
+  erpnext_db:
+  erpnext_sites:
+  erpnext_logs:

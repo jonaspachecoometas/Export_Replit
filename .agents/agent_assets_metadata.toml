@@ -1,0 +1,38 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "28NDwt4UT3HPglsSw-IQk"
+uri = "file://MAPA_MICROSERVICOS_COOLIFY.md"
+type = "text"
+title = "Mapa de Microserviços - Arcádia Suite para Coolify/Docker"
+
+[[outputs]]
+id = "YTVCn39myPk5kzF8smbQz"
+uri = "file://MAPA_SOE_ARCADIA.md"
+type = "text"
+title = "Mapa SOE — Sistema Operacional Empresarial (Deploy)"
+
+[[outputs]]
+id = "pQjx1X6m9hp2j-sZa0_Rg"
+uri = "file://MAPA_BI_ARCADIA.md"
+type = "text"
+title = "Mapa BI - Business Intelligence da Arcádia Suite (com Metabase)"
+
+[[outputs]]
+id = "gpyYTqB0ytdU1zAJij6KK"
+uri = "file://MAPA_CRM_ARCADIA.md"
+type = "text"
+title = "Mapa CRM - Sistema de Relacionamento da Arcádia Suite"
+
+[[outputs]]
+id = "zal1KfcZdP7OqKEXu67Pp"
+uri = "file://MAPA_TENANTS_ARCADIA.md"
+type = "text"
+title = "Mapa Multi-Tenant - Gestão de Tenants da Arcádia Suite"
+
+[[outputs]]
+id = "GCMgcBAHQ1aIDjHxoXniQ"
+uri = "file://MAPA_AUTOMACOES_ARCADIA.md"
+type = "text"
+title = "Mapa Automações - Motor de Automação da Arcádia Suite"

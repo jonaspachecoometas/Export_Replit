@@ -1,0 +1,274 @@
+.side-nav-link i {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: #4254BA !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px !important;
+    margin-right: 12px;
+    margin-top: 8px;
+    flex-shrink: 0;
+}
+.side-nav-link {
+    color: #424e67 !important;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 3px 10px;
+    transition: .25s ease;
+    display: flex;
+    align-items: center;
+}
+.side-nav-link:hover {
+    background: #eef1ff;
+    color: #5563f1 !important;
+}
+.side-nav-link.active {
+    background: #eef1ff !important;
+    color: #5563f1 !important;
+}
+.side-nav-second-level a {
+    padding: 8px 28px !important;
+    margin: 3px 0;
+    font-weight: 500;
+
+    color: #6b7280 !important;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+    transition: .25s ease;
+}
+.side-nav-second-level a:hover {
+    border-left: 2px solid #5563f1;
+    color: #5563f1 !important;
+    padding-left: 34px !important;
+}
+.side-nav-second-level a.active {
+    border-left: 2px solid #5563f1;
+    background: #f7f8ff;
+    color: #5563f1 !important;
+    font-weight: 600;
+    padding-left: 34px !important;
+}
+
+/* Fix for backdrop overlay showing white */
+.offcanvas-backdrop,
+#custom-backdrop {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+.offcanvas-backdrop.show,
+#custom-backdrop.show {
+    opacity: 0.75 !important;
+}
+
+/* Fix for sidebar submenu popup in condensed mode */
+html[data-sidenav-size=condensed] .leftside-menu .side-nav .side-nav-item:hover > .collapse > ul,
+html[data-sidenav-size=condensed] .leftside-menu .side-nav .side-nav-item:hover > .collapsing > ul {
+    background: #313a46 !important;
+    z-index: 1050;
+}
+html[data-sidenav-size=condensed] .leftside-menu .side-nav .side-nav-item:hover > .collapse > ul a,
+html[data-sidenav-size=condensed] .leftside-menu .side-nav .side-nav-item:hover > .collapsing > ul a {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+html[data-sidenav-size=condensed] .leftside-menu .side-nav .side-nav-item:hover > .collapse > ul a:hover,
+html[data-sidenav-size=condensed] .leftside-menu .side-nav .side-nav-item:hover > .collapsing > ul a:hover {
+    color: #ffffff !important;
+}
+
+/* Fix collapse animation for sidebar submenus */
+.leftside-menu .collapse,
+.leftside-menu .collapsing {
+    background: transparent !important;
+}
+
+/* Force hide loader completely - override everything */
+.loader {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Also ensure no white overlays appear */
+.tour-backdrop,
+.modal-backdrop:not(.show),
+#custom-backdrop:not(.show) {
+    display: none !important;
+}
+
+/* Force white areas to be transparent */
+body > div.loader,
+body > .offcanvas-backdrop:not(.show) {
+    display: none !important;
+}
+
+/* ===== EMBEDDED MODE (dentro do iframe do Suite) ===== */
+body.embedded-mode .navbar-custom,
+body.embedded-mode .leftside-menu,
+body.embedded-mode .app-topbar {
+    display: none !important;
+}
+
+body.embedded-mode .content-page {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+}
+
+body.embedded-mode .container-fluid {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+}
+
+body.embedded-mode .wrapper {
+    min-height: 100vh;
+}
+
+body.embedded-mode .content {
+    padding-top: 15px;
+}
+
+/* Tema Arcádia CLARO para modo embedded (igual Retail/Fisco) */
+body.embedded-mode {
+    background: #f8fafc !important;
+}
+
+body.embedded-mode .content-page {
+    background: #f8fafc !important;
+}
+
+body.embedded-mode .card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    color: #1e293b !important;
+}
+
+body.embedded-mode .card-header {
+    background: transparent !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+body.embedded-mode .card-title,
+body.embedded-mode h1, body.embedded-mode h2, 
+body.embedded-mode h3, body.embedded-mode h4,
+body.embedded-mode h5, body.embedded-mode h6 {
+    color: #1e293b !important;
+}
+
+body.embedded-mode .text-muted {
+    color: #64748b !important;
+}
+
+body.embedded-mode .table {
+    color: #1e293b !important;
+}
+
+body.embedded-mode .table thead th {
+    background: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+}
+
+body.embedded-mode .table td, 
+body.embedded-mode .table th {
+    border-color: #e2e8f0 !important;
+}
+
+body.embedded-mode .table-striped tbody tr:nth-of-type(odd) {
+    background: #f8fafc !important;
+}
+
+body.embedded-mode .form-control,
+body.embedded-mode .form-select {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    border-radius: 8px !important;
+}
+
+body.embedded-mode .form-control:focus,
+body.embedded-mode .form-select:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+body.embedded-mode .btn-primary {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    border-radius: 8px !important;
+}
+
+body.embedded-mode .btn-success {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    border-radius: 8px !important;
+}
+
+body.embedded-mode .btn-secondary {
+    background: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+    color: #475569 !important;
+    border-radius: 8px !important;
+}
+
+body.embedded-mode .page-title-box {
+    background: transparent !important;
+}
+
+body.embedded-mode .breadcrumb {
+    background: transparent !important;
+}
+
+body.embedded-mode .breadcrumb-item a {
+    color: #64748b !important;
+}
+
+body.embedded-mode .breadcrumb-item.active {
+    color: #1e293b !important;
+}
+
+body.embedded-mode label {
+    color: #475569 !important;
+}
+
+body.embedded-mode .badge {
+    border-radius: 6px !important;
+}
+
+body.embedded-mode .alert {
+    border-radius: 10px !important;
+}
+
+body.embedded-mode .dropdown-menu {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+body.embedded-mode .dropdown-item {
+    color: #1e293b !important;
+}
+
+body.embedded-mode .dropdown-item:hover {
+    background: #f1f5f9 !important;
+}
+
+body.embedded-mode .modal-content {
+    background: #ffffff !important;
+    border-radius: 16px !important;
+}
+
+body.embedded-mode .modal-header {
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.embedded-mode .modal-footer {
+    border-top: 1px solid #e2e8f0 !important;
+}
