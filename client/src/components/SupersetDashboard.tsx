@@ -93,7 +93,7 @@ export function SupersetDashboard({
         setStatus("error");
       }
     }
-  }, [dashboardId, fetchGuestToken]);
+  }, [dashboardId, fetchTokenData]);
 
   useEffect(() => {
     loadDashboard();
