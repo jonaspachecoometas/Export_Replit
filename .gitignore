@@ -77,3 +77,4 @@ REQUISITOS_*.md
 *.txt
 !README.md
 !replit.md
+.aider*

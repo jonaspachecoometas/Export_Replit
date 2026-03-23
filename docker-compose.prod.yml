@@ -305,6 +305,7 @@ services:
     networks:
       - arcadia-internal
       - coolify
+      - ollama-net
 
   # ── Ollama (LLMs locais — soberania total) ────────────────────────────────────
   # OPÇÃO A (padrão): Ollama como container Docker
@@ -393,6 +394,9 @@ networks:
     driver: bridge
   coolify:
     external: true
+  ollama-net:
+    external: true
+    name: ia1upsekrad96at5hq97e4qa
 
 volumes:
   pgdata:

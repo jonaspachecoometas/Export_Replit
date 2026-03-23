@@ -31,6 +31,16 @@ model_list:
       model: ollama/llama3.2:3b
       api_base: os.environ/OLLAMA_BASE_URL
 
+  - model_name: deepseek-r1
+    litellm_params:
+      model: ollama/deepseek-r1:14b
+      api_base: os.environ/OLLAMA_BASE_URL
+
+  - model_name: arcadia-agent
+    litellm_params:
+      model: ollama/deepseek-r1:14b
+      api_base: os.environ/OLLAMA_BASE_URL
+
   - model_name: nomic-embed-text
     litellm_params:
       model: ollama/nomic-embed-text
@@ -66,25 +76,25 @@ model_list:
   #     api_key: os.environ/GROQ_API_KEY
 
   # ── Modelo padrão do Arcádia (Manus usa este) ─────────────────────────────────
-  # Prioridade: LLMFit (TIER 1) → Ollama (TIER 2 — fallback)
+  # Prioridade: DeepSeek R1 14B (TIER 2) → llama3.2 (fallback rápido)
   - model_name: arcadia-default
     litellm_params:
-      model: openai/llama3.2:3b
-      api_base: os.environ/LLMFIT_BASE_URL
-      api_key: os.environ/LLMFIT_API_KEY
+      model: ollama/deepseek-r1:14b
+      api_base: os.environ/OLLAMA_BASE_URL
 
 router_settings:
   routing_strategy: least-busy
   fallbacks:
-    - {"gpt-4o": ["llama3.2"]}
-    - {"gpt-4o-mini": ["llama3.2"]}
+    - {"gpt-4o": ["deepseek-r1"]}
+    - {"gpt-4o-mini": ["deepseek-r1"]}
     - {"arcadia-default": ["llama3.2"]}
-    - {"arcadia-finetuned": ["llama3.2"]}
+    - {"arcadia-agent": ["llama3.2"]}
+    - {"arcadia-finetuned": ["deepseek-r1"]}
     - {"arcadia-embed": ["nomic-embed-text"]}
 
 litellm_settings:
   drop_params: true
-  request_timeout: 120
+  request_timeout: 300
   set_verbose: false
 
 general_settings:
