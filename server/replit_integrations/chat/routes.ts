@@ -274,7 +274,7 @@ export function registerChatRoutes(app: Express): void {
       res.setHeader("Connection", "keep-alive");
 
       const stream = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "arcadia-agent",
         messages: chatMessages,
         stream: true,
         max_tokens: 4096,
@@ -417,7 +417,7 @@ Responda de forma clara, objetiva e prática. Use exemplos quando apropriado.`
       messages.push({ role: "user", content: message });
       
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "arcadia-agent",
         messages,
         max_tokens: 2048,
         temperature: 0.7,

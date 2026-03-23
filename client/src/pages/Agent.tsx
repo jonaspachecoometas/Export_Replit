@@ -361,6 +361,10 @@ async function fetchManusRun(id: number): Promise<ManusRun> {
   return response.json();
 }
 
+async function cancelManusRun(id: number): Promise<void> {
+  await fetch(`/api/manus/runs/${id}`, { method: "DELETE", credentials: "include" });
+}
+
 async function startManusRun(data: { prompt: string; attachedFiles?: AttachedFile[]; conversationHistory?: Array<{role: string; content: string}> }): Promise<{ runId: number }> {
   const response = await fetch("/api/manus/run", {
     method: "POST",
@@ -1929,6 +1933,21 @@ export default function Agent() {
                       className="flex-1 border-[#e1e8f0] focus:border-[#c89b3c] focus:ring-[#c89b3c]/20"
                       data-testid="input-message"
                     />
+                    {isStreaming && (
+                      <Button
+                        onClick={async () => {
+                          if (selectedRun) await cancelManusRun(selectedRun);
+                          setIsStreaming(false);
+                          setProcessingMode("idle");
+                        }}
+                        variant="destructive"
+                        className="shrink-0"
+                        data-testid="button-cancel-run"
+                        title="Cancelar"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button
                       onClick={handleSendMessage}
                       disabled={!chatInput.trim() || isStreaming}
