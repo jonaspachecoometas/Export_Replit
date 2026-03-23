@@ -6,11 +6,20 @@ const SUPERSET_URL = `http://${SUPERSET_HOST}:${SUPERSET_PORT}`;
 const ADMIN_USER = process.env.SUPERSET_ADMIN_USER || "admin";
 const ADMIN_PASS = process.env.SUPERSET_ADMIN_PASSWORD || "arcadia2026";
 
-// Cache do service token (válido por 50 min)
+// Cache do service token (válido por 45 min)
 let cachedToken: string | null = null;
 let cachedCsrf: string | null = null;
 let cachedSession: string | null = null;
 let tokenExpiry = 0;
+
+const FETCH_TIMEOUT = 8000; // 8s — falha rápido em vez de ficar pendurado
+
+function clearTokenCache() {
+  cachedToken = null;
+  cachedCsrf = null;
+  cachedSession = null;
+  tokenExpiry = 0;
+}
 
 async function getServiceToken(): Promise<{ token: string; csrf: string; session: string }> {
   if (cachedToken && cachedCsrf && cachedSession && Date.now() < tokenExpiry) {
@@ -21,6 +30,7 @@ async function getServiceToken(): Promise<{ token: string; csrf: string; session
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username: ADMIN_USER, password: ADMIN_PASS, provider: "db", refresh: true }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
   });
 
   if (!resp.ok) throw new Error(`Falha ao autenticar no Superset (${resp.status})`);
@@ -29,6 +39,7 @@ async function getServiceToken(): Promise<{ token: string; csrf: string; session
 
   const csrfResp = await fetch(`${SUPERSET_URL}/api/v1/security/csrf_token/`, {
     headers: { "Authorization": `Bearer ${cachedToken}` },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
   });
   if (!csrfResp.ok) throw new Error(`Falha ao obter CSRF token (${csrfResp.status})`);
   const csrfData = await csrfResp.json();
@@ -38,7 +49,7 @@ async function getServiceToken(): Promise<{ token: string; csrf: string; session
   const setCookie = csrfResp.headers.get("set-cookie") || "";
   cachedSession = setCookie.split(";")[0]; // ex: "session=xxx"
 
-  tokenExpiry = Date.now() + 50 * 60 * 1000;
+  tokenExpiry = Date.now() + 45 * 60 * 1000;
   return { token: cachedToken!, csrf: cachedCsrf!, session: cachedSession };
 }
 
@@ -60,6 +71,7 @@ export function registerSupersetRoutes(app: Express): void {
       // o admin via user_loader (necessário quando o papel Public tem can_read on Dashboard)
       const dashResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dashboardId}`, {
         headers: { "Authorization": `Bearer ${token}`, "Cookie": session },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT),
       });
       if (!dashResp.ok) {
         return res.status(404).json({ error: `Dashboard '${dashboardId}' não encontrado no Superset` });
@@ -69,6 +81,7 @@ export function registerSupersetRoutes(app: Express): void {
 
       const embeddedResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dbNumericId}/embedded`, {
         headers: { "Authorization": `Bearer ${token}`, "Cookie": session },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT),
       });
       if (!embeddedResp.ok) {
         return res.status(404).json({ error: `Dashboard '${dashboardId}' não tem embedding habilitado` });
@@ -97,6 +110,7 @@ export function registerSupersetRoutes(app: Express): void {
           resources: [{ type: "dashboard", id: embeddedUuid }],
           rls: user?.tenantId ? [{ clause: `tenant_id = ${user.tenantId}` }] : [],
         }),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT),
       });
 
       if (!guestResp.ok) {
@@ -108,6 +122,7 @@ export function registerSupersetRoutes(app: Express): void {
       res.json({ token: guestToken, embeddedId: embeddedUuid, supersetUrl: "/superset" });
     } catch (err: any) {
       console.error("[Superset] guest-token error:", err.message);
+      clearTokenCache(); // limpa cache para forçar novo login na próxima requisição
       res.status(502).json({ error: err.message });
     }
   });
@@ -128,6 +143,7 @@ export function registerSupersetRoutes(app: Express): void {
       res.json(data.result || []);
     } catch (err: any) {
       console.error("[Superset] dashboards error:", err.message);
+      clearTokenCache();
       res.status(502).json({ error: err.message, dashboards: [] });
     }
   });

@@ -82,6 +82,14 @@ export function SupersetDashboard({
         },
       });
 
+      // O SDK cria um <iframe> sem width/height explícitos — forçar 100%
+      const iframe = containerRef.current?.querySelector("iframe");
+      if (iframe) {
+        iframe.style.width = "100%";
+        iframe.style.height = "100%";
+        iframe.style.border = "none";
+      }
+
       setStatus("ready");
     } catch (err: any) {
       console.error("[SupersetDashboard] Erro:", err.message, err);
@@ -155,9 +163,16 @@ export function SupersetDashboard({
         </a>
       )}
 
+      <style>{`
+        .superset-embed-container iframe {
+          width: 100% !important;
+          height: 100% !important;
+          border: none !important;
+        }
+      `}</style>
       <div
         ref={containerRef}
-        className="w-full h-full rounded-xl overflow-hidden border border-[#c89b3c]/20"
+        className="superset-embed-container w-full h-full rounded-xl overflow-hidden border border-[#c89b3c]/20"
       />
     </div>
   );
