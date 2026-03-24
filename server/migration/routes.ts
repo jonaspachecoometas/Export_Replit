@@ -90,6 +90,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     if (fileName.endsWith('.zip')) sourceType = 'mongodb';
     else if (fileName.endsWith('.json')) sourceType = 'json';
     else if (fileName.endsWith('.csv')) sourceType = 'csv';
+    else if (fileName.endsWith('.rar')) sourceType = 'sql-rar';
+    else if (fileName.endsWith('.sql.gz') || fileName.endsWith('.sql')) sourceType = 'sql';
 
     const [job] = await db.insert(migrationJobs).values({
       name: name || `Migração ${new Date().toLocaleDateString('pt-BR')}`,
@@ -108,26 +110,26 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
       await execAsync(`unzip -o "${filePath}" -d "${extractDir}"`);
 
-      const subdirs = fs.readdirSync(extractDir).filter(f => 
-        fs.statSync(path.join(extractDir, f)).isDirectory() && 
+      const subdirs = fs.readdirSync(extractDir).filter(f =>
+        fs.statSync(path.join(extractDir, f)).isDirectory() &&
         fs.readdirSync(path.join(extractDir, f)).some(sf => sf.endsWith('.bson'))
       );
 
-      const bsonDir = subdirs.length > 0 
+      const bsonDir = subdirs.length > 0
         ? path.join(extractDir, subdirs[0])
         : extractDir;
 
       await db.update(migrationJobs)
-        .set({ 
+        .set({
           status: 'analyzing',
           importConfig: { extractPath: bsonDir }
         })
         .where(eq(migrationJobs.id, job.id));
 
       const analysis = analyzeBackupDirectory(bsonDir);
-      
+
       await db.update(migrationJobs)
-        .set({ 
+        .set({
           status: 'mapping',
           totalRecords: analysis.totalRecords,
           analysisResult: analysis
@@ -148,6 +150,87 @@ router.post('/upload', upload.single('file'), async (req, res) => {
           });
         }
       }
+    } else if (sourceType === 'sql-rar') {
+      const extractDir = path.join(UPLOAD_DIR, `job-${job.id}`);
+      fs.mkdirSync(extractDir, { recursive: true });
+
+      await db.update(migrationJobs)
+        .set({ status: 'analyzing' })
+        .where(eq(migrationJobs.id, job.id));
+
+      await execAsync(`7z x "${filePath}" -o"${extractDir}" -y`);
+
+      const allFiles = fs.readdirSync(extractDir);
+      const sqlGzFile = allFiles.find(f => f.endsWith('.sql.gz'));
+      const sqlFile = allFiles.find(f => f.endsWith('.sql'));
+
+      let finalSqlPath: string;
+      if (sqlGzFile) {
+        const gzPath = path.join(extractDir, sqlGzFile);
+        finalSqlPath = gzPath.replace(/\.gz$/, '');
+        await execAsync(`gunzip -f "${gzPath}"`);
+      } else if (sqlFile) {
+        finalSqlPath = path.join(extractDir, sqlFile);
+      } else {
+        throw new Error('Nenhum arquivo .sql ou .sql.gz encontrado dentro do RAR');
+      }
+
+      const sqlContent = fs.readFileSync(finalSqlPath, 'utf8');
+      const tableMatches = sqlContent.match(/CREATE TABLE\s+`?(\w+)`?/gi) || [];
+      const tables = tableMatches.map(m => m.replace(/CREATE TABLE\s+`?/i, '').replace(/`/g, '').trim());
+      const lineCount = sqlContent.split('\n').length;
+
+      await db.update(migrationJobs)
+        .set({
+          status: 'mapping',
+          totalRecords: lineCount,
+          analysisResult: {
+            type: 'sql',
+            sqlPath: finalSqlPath,
+            tables,
+            tableCount: tables.length,
+            lineCount,
+            fileSizeBytes: fs.statSync(finalSqlPath).size
+          },
+          importConfig: { sqlPath: finalSqlPath }
+        })
+        .where(eq(migrationJobs.id, job.id));
+    } else if (sourceType === 'sql') {
+      const extractDir = path.join(UPLOAD_DIR, `job-${job.id}`);
+      fs.mkdirSync(extractDir, { recursive: true });
+
+      await db.update(migrationJobs)
+        .set({ status: 'analyzing' })
+        .where(eq(migrationJobs.id, job.id));
+
+      let finalSqlPath: string;
+      if (fileName.endsWith('.sql.gz')) {
+        finalSqlPath = path.join(extractDir, fileName.replace(/\.gz$/, ''));
+        await execAsync(`gunzip -c "${filePath}" > "${finalSqlPath}"`);
+      } else {
+        finalSqlPath = filePath;
+      }
+
+      const sqlContent = fs.readFileSync(finalSqlPath, 'utf8');
+      const tableMatches = sqlContent.match(/CREATE TABLE\s+`?(\w+)`?/gi) || [];
+      const tables = tableMatches.map(m => m.replace(/CREATE TABLE\s+`?/i, '').replace(/`/g, '').trim());
+      const lineCount = sqlContent.split('\n').length;
+
+      await db.update(migrationJobs)
+        .set({
+          status: 'mapping',
+          totalRecords: lineCount,
+          analysisResult: {
+            type: 'sql',
+            sqlPath: finalSqlPath,
+            tables,
+            tableCount: tables.length,
+            lineCount,
+            fileSizeBytes: fs.statSync(finalSqlPath).size
+          },
+          importConfig: { sqlPath: finalSqlPath }
+        })
+        .where(eq(migrationJobs.id, job.id));
     }
 
     const [updatedJob] = await db.select().from(migrationJobs).where(eq(migrationJobs.id, job.id));

@@ -275,7 +275,7 @@ export default function Migration() {
                   <div className="mt-2 border-2 border-dashed rounded-lg p-6 text-center">
                     <input
                       type="file"
-                      accept=".zip,.json,.csv"
+                      accept=".zip,.json,.csv,.rar,.sql,.sql.gz"
                       className="hidden"
                       id="backup-file"
                       onChange={e => setUploadFile(e.target.files?.[0] || null)}
@@ -286,7 +286,7 @@ export default function Migration() {
                       <p className="mt-2 text-sm text-gray-500">
                         {uploadFile ? uploadFile.name : "Clique para selecionar"}
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">ZIP (MongoDB), JSON ou CSV</p>
+                      <p className="text-xs text-gray-400 mt-1">ZIP (MongoDB), RAR, SQL, SQL.GZ, JSON ou CSV</p>
                     </label>
                   </div>
                 </div>
