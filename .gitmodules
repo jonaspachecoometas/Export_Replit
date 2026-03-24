@@ -1,0 +1,6 @@
+[submodule "server/modules/miroflow"]
+	path = server/modules/miroflow
+	url = https://github.com/MiroMindAI/MiroFlow.git
+[submodule "server/modules/openclaw"]
+	path = server/modules/openclaw
+	url = https://github.com/miaoxworld/OpenClawInstaller.git
