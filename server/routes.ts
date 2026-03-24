@@ -14,6 +14,7 @@ import { registerManusRoutes } from "./manus/routes";
 import { registerCustomMcpRoutes } from "./mcp/routes";
 import { registerAutomationRoutes } from "./automations/routes";
 import { registerAutomationEngineRoutes } from "./automations/engine-proxy";
+import { registerSkillRoutes } from "./skills/routes";
 import { registerBiRoutes } from "./bi/routes";
 import { registerBiEngineRoutes } from "./bi/engine-proxy";
 import { registerCommEngineRoutes } from "./communication/proxy";
@@ -68,6 +69,11 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Health check global — usado pelo Coolify e Docker healthcheck
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true, service: "arcadia-suite", ts: new Date().toISOString() });
+  });
+
   // Auth and session setup first
   setupAuth(app);
   
@@ -93,6 +99,7 @@ export async function registerRoutes(
   registerCustomMcpRoutes(app);
   registerAutomationRoutes(app);
   registerAutomationEngineRoutes(app);
+  registerSkillRoutes(app);
   registerBiRoutes(app);
   app.use("/api/graph", graphRoutes);
   registerBiEngineRoutes(app);

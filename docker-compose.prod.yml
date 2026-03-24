@@ -77,6 +77,12 @@ services:
       ERPNEXT_URL: ${ERPNEXT_URL:-http://erpnext:8080}
       ERPNEXT_API_KEY: ${ERPNEXT_API_KEY:-}
       ERPNEXT_API_SECRET: ${ERPNEXT_API_SECRET:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     ports:
       - "5000:5000"
     depends_on:
@@ -389,6 +395,24 @@ services:
       - "traefik.http.middlewares.superset-https-redirect.redirectscheme.permanent=true"
     profiles: [bi]
 
+  # ── Neo4j (Knowledge Graph) ─────────────────────────────────────────────────
+  # Ativar com: docker compose --profile kg up
+  neo4j:
+    image: neo4j:5
+    restart: always
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-arcadia123}
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    networks:
+      - arcadia-internal
+    profiles: [kg]
+
 networks:
   arcadia-internal:
     driver: bridge
@@ -403,9 +427,8 @@ volumes:
   redis_data:
   ollama_models:
   open_webui_data:
-
-
-
+  neo4j_data:
+  neo4j_logs:
   plus_db:
   plus_storage:
   superset_home:
