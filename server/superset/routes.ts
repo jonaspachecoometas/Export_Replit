@@ -69,10 +69,19 @@ export function registerSupersetRoutes(app: Express): void {
       // Resolve slug → dashboard ID → embedded UUID
       // Enviar session cookie junto com o Bearer JWT para que Flask-Login identifique
       // o admin via user_loader (necessário quando o papel Public tem can_read on Dashboard)
-      const dashResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dashboardId}`, {
+      let dashResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dashboardId}`, {
         headers: { "Authorization": `Bearer ${token}`, "Cookie": session },
         signal: AbortSignal.timeout(FETCH_TIMEOUT),
       });
+      // Token pode ter expirado — limpa cache e tenta uma vez com credenciais frescas
+      if (!dashResp.ok) {
+        clearTokenCache();
+        const fresh = await getServiceToken();
+        dashResp = await fetch(`${SUPERSET_URL}/api/v1/dashboard/${dashboardId}`, {
+          headers: { "Authorization": `Bearer ${fresh.token}`, "Cookie": fresh.session },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT),
+        });
+      }
       if (!dashResp.ok) {
         return res.status(404).json({ error: `Dashboard '${dashboardId}' não encontrado no Superset` });
       }

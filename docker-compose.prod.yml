@@ -78,7 +78,7 @@ services:
       ERPNEXT_API_KEY: ${ERPNEXT_API_KEY:-}
       ERPNEXT_API_SECRET: ${ERPNEXT_API_SECRET:-}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -372,6 +372,11 @@ services:
     volumes:
       - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
       - ./docker/superset/init.sh:/app/docker/init.sh:ro
+      - ./docker/superset/images/arcadia_logo.png:/app/superset/static/assets/images/arcadia_logo.png:ro
+      - ./docker/superset/images/arcadia_logo_dark.png:/app/superset/static/assets/images/arcadia_logo_dark.png:ro
+      - ./docker/superset/images/superset-logo-horiz.png:/app/superset/static/assets/images/superset-logo-horiz.png:ro
+      - ./docker/superset/images/favicon.png:/app/superset/static/assets/images/favicon.png:ro
+      - ./docker/superset/images/arcadia_favicon.png:/app/superset/static/assets/images/arcadia_favicon.png:ro
       - superset_home:/app/superset_home
     depends_on:
       db:

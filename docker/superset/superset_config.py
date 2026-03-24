@@ -46,6 +46,8 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 300
 
 # ── Branding Arcádia ──────────────────────────────────────────────────────────
 APP_NAME = "Arcádia Insights"
+APP_ICON = "/static/assets/images/arcadia_logo.png"
+APP_ICON_WIDTH = 150
 LOGO_TARGET_PATH = "/"
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
 
