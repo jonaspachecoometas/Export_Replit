@@ -147,6 +147,7 @@ function Router() {
       <ProtectedRoute path="/page-builder" component={PageBuilder} />
       <ProtectedRoute path="/migration" component={Migration} />
       <ProtectedRoute path="/dev-center" component={DevCenter} />
+      <ProtectedRoute path="/skills" component={Skills} />
       <ProtectedRoute path="/page/:id" component={WorkspacePage} />
       <ProtectedRoute path="/app/:id" component={AppViewer} />
       <Route path="/auth" component={AuthPage} />

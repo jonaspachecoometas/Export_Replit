@@ -1,5 +1,5 @@
 import { BrowserFrame } from "@/components/Browser/BrowserFrame";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,6 +133,10 @@ export default function Skills() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historySkill, setHistorySkill] = useState<Skill | null>(null);
 
+  // Ref para skills — usado no completion provider sem closure stale
+  const skillsRef = useRef<Skill[]>([]);
+  const completionDisposable = useRef<{ dispose(): void } | null>(null);
+
   // ── Queries ────────────────────────────────────────────────────────────────
 
   const { data: skillsData, isLoading } = useQuery<{ skills: Skill[] }>({
@@ -262,6 +266,87 @@ export default function Skills() {
   }
 
   const skills = skillsData?.skills ?? [];
+
+  // Mantém ref atualizado para o completion provider
+  useEffect(() => { skillsRef.current = skills; }, [skills]);
+
+  // Cleanup do completion provider ao desmontar
+  useEffect(() => () => { completionDisposable.current?.dispose(); }, []);
+
+  // Handler do Monaco Body — registra completion provider de referências /
+  function handleBodyEditorMount(editor: unknown, monaco: any) {
+    completionDisposable.current?.dispose();
+
+    const PREFIXES = [
+      { label: "/skill/",         detail: "Skill do tenant atual" },
+      { label: "/skill:system/",  detail: "Skill global do sistema" },
+      { label: "/skill:company/", detail: "Skill da empresa" },
+      { label: "/var/",           detail: "Variável de contexto ou parâmetro de entrada" },
+      { label: "/data/",          detail: "Dado dinâmico do banco" },
+      { label: "/kg/",            detail: "Nó do Knowledge Graph (Neo4j)" },
+      { label: "/file/",          detail: "Arquivo no storage" },
+      { label: "/tool/",          detail: "Tool disponível no Manus" },
+      { label: "/agent/",         detail: "Agente especialista" },
+    ];
+
+    completionDisposable.current = monaco.languages.registerCompletionItemProvider("markdown", {
+      triggerCharacters: ["/"],
+      provideCompletionItems(model: any, position: any) {
+        const line = model.getValueInRange({
+          startLineNumber: position.lineNumber,
+          startColumn: 1,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column,
+        });
+
+        const match = line.match(/\/([\w:\/\-.]*)$/);
+        if (!match) return { suggestions: [] };
+
+        const typed = match[1];
+        const startCol = position.column - typed.length - 1;
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: startCol,
+          endColumn: position.column,
+        };
+
+        const CIK = monaco.languages.CompletionItemKind;
+
+        // Sugestões de prefixos
+        const prefixSuggestions = PREFIXES.map(p => ({
+          label: p.label,
+          kind: CIK.Reference,
+          detail: p.detail,
+          insertText: p.label,
+          sortText: "0_" + p.label,
+          range,
+        }));
+
+        // Sugestões de skills existentes quando digita /skill/...
+        const skillSuggestions: any[] = [];
+        if (typed.startsWith("skill/") || typed.startsWith("skill:")) {
+          const afterSkill = typed.replace(/^skill(:[^/]+)?\//, "");
+          skillsRef.current.forEach(s => {
+            const ref = `/skill/${s.namespace}/${s.slug}`;
+            if (!afterSkill || s.slug.includes(afterSkill) || s.name.toLowerCase().includes(afterSkill)) {
+              skillSuggestions.push({
+                label: ref,
+                kind: CIK.Variable,
+                detail: s.description ?? s.name,
+                documentation: `namespace: ${s.namespace} | status: ${s.status}`,
+                insertText: ref,
+                sortText: "1_" + ref,
+                range,
+              });
+            }
+          });
+        }
+
+        return { suggestions: [...prefixSuggestions, ...skillSuggestions] };
+      },
+    });
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -529,6 +614,7 @@ export default function Skills() {
                   defaultLanguage="markdown"
                   value={form.body}
                   onChange={v => setForm(f => ({ ...f, body: v ?? "" }))}
+                  onMount={handleBodyEditorMount}
                   theme="vs-dark"
                   options={{
                     fontSize: 13,
@@ -537,6 +623,8 @@ export default function Skills() {
                     lineNumbers: "on",
                     scrollBeyondLastLine: false,
                     padding: { top: 8 },
+                    quickSuggestions: { other: true, comments: true, strings: true },
+                    suggestOnTriggerCharacters: true,
                   }}
                 />
               </div>
