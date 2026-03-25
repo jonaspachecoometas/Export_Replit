@@ -65,7 +65,15 @@ async def run_agent(agent_type: str, task: str) -> tuple[str, str]:
         raise ValueError(f"Agente desconhecido: {agent_type}. Use: {list(AGENT_MODELS.keys())}")
     cfg = make_agent_cfg(agent_type)
     agent = build_agent(cfg)
-    ctx = AgentContext(task_description=task)
+    ctx = AgentContext(
+        task_description=task,
+        system_prompt=(
+            "Você é um agente científico da Arcádia Suite especializado em análise de dados "
+            "empresariais. Responda em português de forma clara e objetiva. "
+            "Quando precisar de dados, explique o que analisaria e quais conclusões seriam esperadas."
+        ),
+        initial_user_message=task,
+    )
     result = await agent.run(ctx)
     text = result.get("summary", str(result)) if isinstance(result, dict) else str(result)
     return text, cfg["llm"]["model_name"]

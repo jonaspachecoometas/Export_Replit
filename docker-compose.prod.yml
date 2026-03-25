@@ -77,6 +77,9 @@ services:
       ERPNEXT_URL: ${ERPNEXT_URL:-http://erpnext:8080}
       ERPNEXT_API_KEY: ${ERPNEXT_API_KEY:-}
       ERPNEXT_API_SECRET: ${ERPNEXT_API_SECRET:-}
+      # ── MiroFlow (container) ─────────────────────────────────────────────
+      MIROFLOW_HOST: "miroflow"
+      MIROFLOW_PORT: "8006"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/api/health || exit 1"]
       interval: 30s
@@ -200,6 +203,18 @@ services:
     networks:
       - arcadia-internal
 
+
+  # ── MiroFlow (agente científico) ─────────────────────────────────────────────
+  miroflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.miroflow
+    restart: always
+    environment:
+      MIROFLOW_PORT: "8006"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://10.0.7.1:11434}
+    networks:
+      - arcadia-internal
 
   # ── Microserviços Python ─────────────────────────────────────────────────────
   contabil:
