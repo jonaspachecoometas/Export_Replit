@@ -36,3 +36,13 @@ llama3.1:8b nao disponivel no Ollama local — fallback automatico para llama3.2
 omegaconf 2.3.0, hydra-core 1.3.2, mcp 1.26.0 instalados via pip3 --break-system-packages.
 
 ## Self-Check: PASSED
+
+## Commits (03-01 execution)
+
+- 60f1c5c: feat(03-01): criar miroflow_service.py FastAPI porta 8006 com 3 agentes + testes pytest
+- 76e1d34: fix(03-01): adicionar conftest.py para resolver imports em pytest do root
+
+## Deviations
+
+- [Rule 2] conftest.py adicionado: pytest da raiz falhava sem sys.path fix
+- [Documentado] llama3.2:3b usado como fallback para researcher (llama3.1:8b nao instalado)
