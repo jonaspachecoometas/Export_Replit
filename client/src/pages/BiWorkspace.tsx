@@ -47,6 +47,7 @@ import {
   X,
   Sparkles,
   MessageSquare,
+  Brain,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -81,6 +82,7 @@ import {
   Cell,
 } from "recharts";
 import { SupersetDashboard } from "@/components/SupersetDashboard";
+import { MiroFlowControl } from "@/components/MiroFlowControl";
 
 interface BiStats {
   dataSources: number;
@@ -2893,6 +2895,9 @@ export default function BiWorkspace() {
               <TabsTrigger value="advanced" className="data-[state=active]:bg-[#c89b3c] data-[state=active]:text-[#1f334d] text-white/70">
                 <Settings className="w-4 h-4 mr-2" /> Insights
               </TabsTrigger>
+              <TabsTrigger value="cientifico" className="data-[state=active]:bg-[#c89b3c] data-[state=active]:text-[#1f334d] text-white/70">
+                <Brain className="w-4 h-4 mr-2" /> Científico
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-0">
@@ -2935,6 +2940,9 @@ export default function BiWorkspace() {
                 </div>
                 <SupersetDashboard dashboardId="executive-summary" height="calc(100vh - 320px)" />
               </div>
+            </TabsContent>
+            <TabsContent value="cientifico" className="mt-0">
+              <MiroFlowControl />
             </TabsContent>
           </Tabs>
         </div>
