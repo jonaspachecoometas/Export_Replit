@@ -38,6 +38,11 @@ import {
   ChevronRight,
   History,
   Copy,
+  Store,
+  Download,
+  CheckCheck,
+  Tag,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Editor from "@monaco-editor/react";
@@ -52,6 +57,7 @@ interface Skill {
   namespace: string;
   status: string;
   triggerType: string | null;
+  version: string;
   body: string | null;
   parametersSchema: Record<string, unknown> | null;
   tags: string[] | null;
@@ -71,6 +77,10 @@ interface SkillExecution {
   durationMs: number | null;
   startedAt: string;
   completedAt: string | null;
+}
+
+interface MarketplaceSkill extends Skill {
+  imported: boolean;
 }
 
 const EMPTY_SKILL = {
@@ -133,6 +143,11 @@ export default function Skills() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historySkill, setHistorySkill] = useState<Skill | null>(null);
 
+  const [view, setView] = useState<"minhas" | "marketplace">("minhas");
+  const [mktSearch, setMktSearch] = useState("");
+  const [mktTag, setMktTag] = useState("all");
+  const [importedId, setImportedId] = useState<string | null>(null);
+
   // Ref para skills — usado no completion provider sem closure stale
   const skillsRef = useRef<Skill[]>([]);
   const completionDisposable = useRef<{ dispose(): void } | null>(null);
@@ -158,6 +173,18 @@ export default function Skills() {
       return res.json();
     },
     enabled: !!historySkill && historyOpen,
+  });
+
+  const { data: mktData, isLoading: mktLoading } = useQuery<{ skills: MarketplaceSkill[] }>({
+    queryKey: ["/api/skills/marketplace", mktSearch, mktTag],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (mktSearch) params.set("search", mktSearch);
+      if (mktTag !== "all") params.set("tag", mktTag);
+      const res = await fetch(`/api/skills/marketplace?${params}`);
+      return res.json();
+    },
+    enabled: view === "marketplace",
   });
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -208,6 +235,21 @@ export default function Skills() {
       toast({ title: "Skill removida" });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const importMutation = useMutation({
+    mutationFn: async (skillId: string) => {
+      const res = await fetch(`/api/skills/marketplace/${skillId}/import`, { method: "POST" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json() as Promise<{ skill: Skill }>;
+    },
+    onSuccess: (data) => {
+      setImportedId(data.skill.id);
+      qc.invalidateQueries({ queryKey: ["/api/skills/marketplace"] });
+      qc.invalidateQueries({ queryKey: ["/api/skills"] });
+      toast({ title: `"${data.skill.name}" importada para suas skills` });
+    },
+    onError: (e: any) => toast({ title: "Erro ao importar", description: e.message, variant: "destructive" }),
   });
 
   const executeMutation = useMutation({
@@ -351,7 +393,7 @@ export default function Skills() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <BrowserFrame title="Skills" icon="⚡">
+    <BrowserFrame>
       <div className="flex flex-col h-full bg-[#0a0f1a] text-white">
 
         {/* Header */}
@@ -360,10 +402,31 @@ export default function Skills() {
             <h1 className="text-lg font-semibold">Skills</h1>
             <p className="text-xs text-muted-foreground">Objetos reutilizáveis — herança, composição, polimorfismo</p>
           </div>
-          <Button size="sm" onClick={openNew} className="bg-[#c89b3c] hover:bg-[#d4a94a] text-black">
-            <Plus className="w-4 h-4 mr-1" /> Nova Skill
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border border-white/10 overflow-hidden">
+              <button
+                onClick={() => setView("minhas")}
+                className={`px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors ${view === "minhas" ? "bg-[#c89b3c] text-black font-medium" : "text-white/60 hover:text-white hover:bg-white/5"}`}
+              >
+                <Zap className="w-3.5 h-3.5" /> Minhas Skills
+              </button>
+              <button
+                onClick={() => setView("marketplace")}
+                className={`px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors ${view === "marketplace" ? "bg-[#c89b3c] text-black font-medium" : "text-white/60 hover:text-white hover:bg-white/5"}`}
+              >
+                <Store className="w-3.5 h-3.5" /> Biblioteca
+              </button>
+            </div>
+            {view === "minhas" && (
+              <Button size="sm" onClick={openNew} className="bg-[#c89b3c] hover:bg-[#d4a94a] text-black">
+                <Plus className="w-4 h-4 mr-1" /> Nova Skill
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* ── VIEW: MINHAS SKILLS ──────────────────────────────────────────────── */}
+        {view === "minhas" && (<>
 
         {/* Filters */}
         <div className="flex gap-2 p-3 border-b border-white/10">
@@ -486,6 +549,126 @@ export default function Skills() {
             </div>
           )}
         </ScrollArea>
+        </>)}
+
+        {/* ── VIEW: BIBLIOTECA (MARKETPLACE) ──────────────────────────────────── */}
+        {view === "marketplace" && (<>
+
+        {/* Marketplace filters */}
+        <div className="flex gap-2 p-3 border-b border-white/10">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar na biblioteca..."
+              value={mktSearch}
+              onChange={e => setMktSearch(e.target.value)}
+              className="pl-8 h-8 text-sm bg-white/5 border-white/10"
+            />
+          </div>
+          <Select value={mktTag} onValueChange={setMktTag}>
+            <SelectTrigger className="w-36 h-8 text-xs bg-white/5 border-white/10">
+              <Tag className="w-3 h-3 mr-1" />
+              <SelectValue placeholder="Tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as tags</SelectItem>
+              <SelectItem value="financeiro">Financeiro</SelectItem>
+              <SelectItem value="crm">CRM</SelectItem>
+              <SelectItem value="relatorio">Relatório</SelectItem>
+              <SelectItem value="automacao">Automação</SelectItem>
+              <SelectItem value="ia">IA</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Marketplace grid */}
+        <ScrollArea className="flex-1">
+          {mktLoading ? (
+            <div className="flex items-center justify-center h-40">
+              <Loader2 className="w-6 h-6 animate-spin text-[#c89b3c]" />
+            </div>
+          ) : !mktData?.skills?.length ? (
+            <div className="flex flex-col items-center justify-center h-60 text-muted-foreground gap-3">
+              <Store className="w-12 h-12 opacity-20" />
+              <p className="text-sm font-medium">Biblioteca vazia</p>
+              <p className="text-xs text-center max-w-xs opacity-70">
+                Ainda não há skills do sistema publicadas. Skills com namespace <code className="bg-white/10 px-1 rounded">system</code> e status <code className="bg-white/10 px-1 rounded">active</code> aparecerão aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {mktData.skills.map(skill => (
+                <Card
+                  key={skill.id}
+                  className={`border transition-all ${importedId === skill.id ? "border-green-500/40 bg-green-500/5" : "border-white/10 bg-white/5 hover:bg-white/8"}`}
+                >
+                  <CardContent className="p-4">
+                    {/* Top row */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <Sparkles className="w-3.5 h-3.5 text-[#c89b3c] flex-shrink-0" />
+                          <span className="font-semibold text-sm truncate">{skill.name}</span>
+                        </div>
+                        <p className="text-[10px] font-mono text-white/40">/skill:system/{skill.slug}</p>
+                      </div>
+
+                      {/* Import button */}
+                      {skill.imported || importedId === skill.id ? (
+                        <Badge variant="outline" className="text-[10px] border-green-500/40 text-green-400 bg-green-500/10 flex-shrink-0 gap-1">
+                          <CheckCheck className="w-3 h-3" /> Importada
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-[#c89b3c]/40 text-[#c89b3c] hover:bg-[#c89b3c]/10 flex-shrink-0 gap-1"
+                          onClick={() => importMutation.mutate(skill.id)}
+                          disabled={importMutation.isPending && importMutation.variables === skill.id}
+                        >
+                          {importMutation.isPending && importMutation.variables === skill.id
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Download className="w-3 h-3" />
+                          }
+                          Importar
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    {skill.description && (
+                      <p className="text-xs text-white/60 mb-3 line-clamp-2">{skill.description}</p>
+                    )}
+
+                    {/* Tags */}
+                    {skill.tags && skill.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {skill.tags.map(tag => (
+                          <span
+                            key={tag}
+                            onClick={() => setMktTag(tag)}
+                            className="text-[10px] bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/10">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-white/20 text-white/40">
+                        {skill.triggerType ?? "manual"}
+                      </Badge>
+                      <span className="text-[10px] text-white/30 ml-auto">v{skill.version}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+        </>)}
       </div>
 
       {/* ── Edit / Create Dialog ────────────────────────────────────────────── */}

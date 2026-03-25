@@ -5,7 +5,7 @@ import {
   skillExecutions,
   insertArcadiaSkillSchema,
 } from "@shared/schema";
-import { eq, and, desc, ilike, or } from "drizzle-orm";
+import { eq, and, desc, ilike, or, ne } from "drizzle-orm";
 import { z } from "zod";
 import { skillEngine } from "./engine";
 
@@ -192,6 +192,100 @@ export function registerSkillRoutes(app: Express): void {
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
       const executions = await skillEngine.getExecutions(req.params.id, limit);
       res.json({ executions });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // ── Marketplace: listar skills do sistema disponíveis ────────────────────
+
+  app.get("/api/skills/marketplace", async (req: Request, res: Response) => {
+    try {
+      const search = req.query.search as string | undefined;
+      const tag = req.query.tag as string | undefined;
+      const tid = tenantId(req);
+
+      const conditions: any[] = [
+        eq(arcadiaSkills.namespace, "system"),
+        eq(arcadiaSkills.status, "active"),
+      ];
+
+      if (search) {
+        conditions.push(
+          or(
+            ilike(arcadiaSkills.name, `%${search}%`),
+            ilike(arcadiaSkills.description, `%${search}%`),
+            ilike(arcadiaSkills.slug, `%${search}%`)
+          )
+        );
+      }
+
+      const skills = await db
+        .select()
+        .from(arcadiaSkills)
+        .where(and(...conditions))
+        .orderBy(desc(arcadiaSkills.createdAt))
+        .limit(100);
+
+      // Marcar quais já foram importadas pelo tenant
+      let importedSlugs: string[] = [];
+      if (tid) {
+        const tenantSkills = await db
+          .select({ slug: arcadiaSkills.slug })
+          .from(arcadiaSkills)
+          .where(and(eq(arcadiaSkills.tenantId, tid), ne(arcadiaSkills.namespace, "system")));
+        importedSlugs = tenantSkills.map(s => s.slug);
+      }
+
+      const result = skills
+        .filter(s => !tag || (s.tags ?? []).includes(tag))
+        .map(s => ({ ...s, imported: importedSlugs.includes(s.slug) }));
+
+      res.json({ skills: result });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // ── Marketplace: importar skill do sistema para o tenant ──────────────────
+
+  app.post("/api/skills/marketplace/:id/import", async (req: Request, res: Response) => {
+    try {
+      const tid = tenantId(req);
+      const uid = userId(req);
+
+      const [source] = await db
+        .select()
+        .from(arcadiaSkills)
+        .where(and(eq(arcadiaSkills.id, req.params.id), eq(arcadiaSkills.namespace, "system")))
+        .limit(1);
+
+      if (!source) return res.status(404).json({ error: "Skill não encontrada no marketplace" });
+
+      // Clonar para o namespace tenant
+      const [imported] = await db
+        .insert(arcadiaSkills)
+        .values({
+          name: source.name,
+          slug: source.slug,
+          description: source.description,
+          version: source.version,
+          icon: source.icon,
+          tags: source.tags,
+          namespace: "tenant",
+          tenantId: tid,
+          extends: [`/skill:system/${source.slug}`],
+          body: source.body,
+          parametersSchema: source.parametersSchema,
+          returnSchema: source.returnSchema,
+          triggerType: source.triggerType,
+          triggerConfig: source.triggerConfig,
+          status: "draft",
+          createdBy: uid,
+        } as any)
+        .returning();
+
+      res.status(201).json({ skill: imported, importedFrom: source.id });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }
