@@ -17,6 +17,7 @@ import { registerAutomationEngineRoutes } from "./automations/engine-proxy";
 import { registerSkillRoutes } from "./skills/routes";
 import { registerBiRoutes } from "./bi/routes";
 import { registerBiEngineRoutes } from "./bi/engine-proxy";
+import { registerMiroFlowRoutes } from "./miroflow/engine-proxy";
 import { registerCommEngineRoutes } from "./communication/proxy";
 import { registerLearningRoutes } from "./learning/routes";
 import compassRoutes from "./compass/routes";
@@ -103,6 +104,7 @@ export async function registerRoutes(
   registerBiRoutes(app);
   app.use("/api/graph", graphRoutes);
   registerBiEngineRoutes(app);
+  registerMiroFlowRoutes(app);
   registerCommEngineRoutes(app);
   registerLearningRoutes(app);
   app.use("/api/compass", compassRoutes);
