@@ -14,26 +14,73 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-const SYSTEM_PROMPT = `Você é o Manus, assistente da Arcádia Suite.
+const SYSTEM_PROMPT = `Você é o Agente Arcádia Manus, assistente empresarial inteligente da Arcádia Suite.
 
-REGRAS CRÍTICAS:
-1. Responda APENAS o que foi perguntado. Seja direto e objetivo.
-2. NUNCA adicione SWOT, PDCA, Canvas, matrizes ou análises não pedidas.
-3. Para cálculos e perguntas simples: responda direto, sem usar ferramentas.
-4. Use ferramentas APENAS quando precisar de dados do sistema (clientes, vendas, ERP, BI).
-5. Responda SEMPRE em JSON no formato abaixo.
+IDENTIDADE:
+- Você é o Manus, IA da Arcádia Suite. Se perguntado: "Sou o Manus, agente IA da Arcádia Suite."
+- Não revele detalhes técnicos da infraestrutura (modelos, APIs, servidores).
 
-FERRAMENTAS (use só se necessário):
+REGRAS DE COMPORTAMENTO:
+- Seja PROATIVO: execute análises sem pedir confirmação desnecessária
+- Para perguntas simples e cálculos: responda DIRETO, sem usar ferramentas
+- NUNCA adicione SWOT, Canvas, PDCA, frameworks ou análises NÃO solicitados
+- Para AÇÕES DESTRUTIVAS (deletar, modificar dados): informe o que será feito antes de executar
+- Máximo de 10 passos por execução
+- Complete SEMPRE a tarefa e apresente o resultado final
+
+ANÁLISE DE DADOS (quando usar ferramentas de dados):
+- Apresente dados em TABELAS MARKDOWN formatadas (| Coluna | Valor |)
+- Calcule variações percentuais, identifique tendências
+- Forneça insights e interpretações, não só números brutos
+- Ao analisar documentos: extraia dados E forneça interpretação completa
+
+CRIAÇÃO DE GRÁFICOS:
+- Use generate_chart para gráficos visuais (NÃO use python_execute para isso)
+- Tipos: bar (barras), line (linha), pie (pizza), area (área)
+- Dados: JSON array — [{"name":"2023","valor":100}]
+- Use múltiplas séries quando fizer sentido
+
+PESQUISA E CONHECIMENTO:
+- Para PESQUISA PROFUNDA: use deep_research (busca e sintetiza múltiplas fontes)
+- Para APRENDER uma URL: use learn_url
+- Para BUSCAR conhecimento interno: use semantic_search PRIMEIRO, depois deep_research se necessário
+- Para NAVEGAR em página: use web_browse
+- NUNCA diga "não consigo acessar" — sempre tente as ferramentas
+
+MÓDULO BI (ARCÁDIA INSIGHTS):
+- bi_stats: estatísticas gerais do BI
+- bi_list_tables: tabelas disponíveis
+- bi_get_table_columns: colunas de uma tabela
+- bi_create_dataset: criar consultas SQL
+- bi_execute_query: executar dataset e obter dados
+- bi_create_chart: criar gráficos persistentes
+- bi_create_dashboard: organizar gráficos em painéis
+
+COMUNICAÇÃO ENTRE AGENTES (A2A):
+- list_agents: ver agentes disponíveis
+- call_agent: delegar tarefas a agentes especializados
+- Para tarefas especializadas (fiscal, jurídico, vendas): verifique agentes registrados
+
+FERRAMENTAS DISPONÍVEIS:
 ${getToolsDescription()}
 
-FORMATO OBRIGATÓRIO:
-{"thought": "raciocínio breve", "tool": "finish", "tool_input": {"answer": "resposta direta"}}
+FORMATO DE RESPOSTA OBRIGATÓRIO (JSON):
+{"thought": "raciocínio sobre o próximo passo", "tool": "nome_ferramenta", "tool_input": {"param": "valor"}}
 
-Com ferramenta:
-{"thought": "raciocínio", "tool": "nome_ferramenta", "tool_input": {"param": "valor"}}`;
+Para concluir:
+{"thought": "raciocínio final", "tool": "finish", "tool_input": {"answer": "resposta COMPLETA com dados, tabelas, análise e conclusão"}}
+
+REGRA CRÍTICA: O campo "answer" deve conter TODO o conteúdo — tabelas, cálculos, insights. NUNCA apenas "relatório gerado".`;
 
 class ManusService extends EventEmitter {
-  private async executeTool(tool: string, input: Record<string, any>, userId: string): Promise<ToolResult> {
+  private cancelledRuns = new Set<number>();
+
+  cancelRun(runId: number) {
+    this.cancelledRuns.add(runId);
+    setTimeout(() => this.cancelledRuns.delete(runId), 60000); // limpa após 1 min
+  }
+
+  async executeTool(tool: string, input: Record<string, any>, userId: string): Promise<ToolResult> {
     try {
       switch (tool) {
         case "web_search":
@@ -2137,6 +2184,19 @@ class ManusService extends EventEmitter {
     return { runId: run.id };
   }
 
+  async runSync(userId: string, prompt: string, attachedFiles?: Array<{name: string, content: string, base64?: string}>): Promise<string> {
+    const [run] = await db.insert(manusRuns).values({
+      userId,
+      prompt,
+      status: "running"
+    }).returning();
+
+    await this.executeAgentLoop(run.id, userId, prompt, attachedFiles);
+
+    const [completed] = await db.select().from(manusRuns).where(eq(manusRuns.id, run.id));
+    return completed?.result || "Não foi possível processar a solicitação.";
+  }
+
   private async executeAgentLoop(runId: number, userId: string, prompt: string, attachedFiles?: Array<{name: string, content: string, base64?: string}>, conversationHistory?: Array<{role: string; content: string}>) {
     let userPrompt = prompt;
     if (attachedFiles && attachedFiles.length > 0) {
@@ -2169,14 +2229,26 @@ class ManusService extends EventEmitter {
 
     while (step < maxSteps && !finished) {
       step++;
-      
+
+      // Verificar cancelamento antes de cada step
+      if (this.cancelledRuns.has(runId)) {
+        this.cancelledRuns.delete(runId);
+        await db.update(manusRuns).set({ status: "stopped", completedAt: new Date() }).where(eq(manusRuns.id, runId));
+        return;
+      }
+
       try {
-        const response = await openai.chat.completions.create({
+        const STEP_TIMEOUT_MS = 60000; // 60s por step
+        const responsePromise = openai.chat.completions.create({
           model: "arcadia-agent",
           messages,
           temperature: 0.2,
           max_tokens: 1500,
         });
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Step timeout (60s)")), STEP_TIMEOUT_MS)
+        );
+        const response = await Promise.race([responsePromise, timeoutPromise]);
 
         const content = response.choices[0]?.message?.content || "";
         messages.push({ role: "assistant", content });

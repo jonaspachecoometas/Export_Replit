@@ -99,7 +99,7 @@ Nome do cliente: ${contactName}`;
       messages.push({ role: "user", content: message });
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "arcadia-agent",
         messages,
         max_tokens: 200,
         temperature: 0.7,

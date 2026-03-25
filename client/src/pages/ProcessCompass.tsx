@@ -1855,7 +1855,7 @@ export default function ProcessCompass() {
             data-testid="search-projects"
           />
         </div>
-        <Button onClick={() => setShowNewProjectDialog(true)} disabled={clients.length === 0} data-testid="btn-new-project">
+        <Button onClick={() => setShowNewProjectDialog(true)} data-testid="btn-new-project">
           <Plus className="h-4 w-4 mr-2" /> Novo Projeto
         </Button>
       </div>
@@ -4600,18 +4600,32 @@ export default function ProcessCompass() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="project-client">Cliente</Label>
-                <Select name="clientId" required>
-                  <SelectTrigger data-testid="select-project-client">
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id.toString()}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {clients.length === 0 ? (
+                  <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+                    Nenhum cliente cadastrado.{" "}
+                    <button
+                      type="button"
+                      className="underline font-medium"
+                      onClick={() => { setShowNewProjectDialog(false); setShowNewClientDialog(true); }}
+                    >
+                      Criar cliente
+                    </button>{" "}
+                    antes de criar um projeto.
+                  </div>
+                ) : (
+                  <Select name="clientId" required>
+                    <SelectTrigger data-testid="select-project-client">
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map(client => (
+                        <SelectItem key={client.id} value={client.id.toString()}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="project-description">Descrição</Label>

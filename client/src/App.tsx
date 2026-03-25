@@ -70,6 +70,7 @@ const XosPipeline = lazy(() => import("@/pages/XosPipeline"));
 const XosSupervisor = lazy(() => import("@/pages/XosSupervisor"));
 const XosReports = lazy(() => import("@/pages/XosReports"));
 const XosProtocols = lazy(() => import("@/pages/XosProtocols"));
+const Skills = lazy(() => import("@/pages/Skills"));
 
 
 function LoadingFallback() {

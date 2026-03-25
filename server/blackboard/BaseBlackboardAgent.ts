@@ -38,7 +38,7 @@ export interface AgentThought {
 
 export class ManusIntelligence {
   private static instance: ManusIntelligence;
-  private model = "gpt-4o";
+  private model = "arcadia-agent";
   private callCount = 0;
   private tokenCount = 0;
   private errorCount = 0;

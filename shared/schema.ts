@@ -7429,3 +7429,99 @@ export type SoeEvento = typeof soeEventos.$inferSelect;
 export type InsertSoeEvento = z.infer<typeof insertSoeEventoSchema>;
 export type SoeLancamento = typeof soeLancamentos.$inferSelect;
 export type InsertSoeLancamento = z.infer<typeof insertSoeLancamentoSchema>;
+
+// =============================================================================
+// ARCÁDIA AGENTIC SUITE — Skills POO (Fase 1 — 2026-03-24)
+// Modelo orientado a objetos: herança, composição, polimorfismo, multi-tenant
+// NÃO remove xosSkillRegistry (modelo legado XOS continua intacto)
+// =============================================================================
+
+export const arcadiaSkills = pgTable("arcadia_skills", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  // Identidade
+  name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull(),
+  description: text("description"),
+  version: varchar("version", { length: 50 }).notNull().default("1.0.0"),
+  icon: varchar("icon", { length: 100 }),
+  tags: text("tags").array(),
+
+  // Namespace multi-tenant (system > tenant > company > user)
+  namespace: varchar("namespace", { length: 20 }).notNull().default("tenant"), // 'system' | 'tenant' | 'company' | 'user'
+  tenantId: integer("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+  companyId: integer("company_id"),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+
+  // Herança POO — lista de slugs: ['/skill:system/base_report']
+  extends: text("extends").array(),
+  // Interfaces/contratos implementados
+  implements: text("implements").array(),
+
+  // Encapsulamento
+  visibilityExecute: varchar("visibility_execute", { length: 20 }).default("public"), // 'public' | 'private' | 'protected'
+  visibilityParams: varchar("visibility_params", { length: 20 }).default("public"),
+
+  // Composição — dependências como referências /tipo/caminho
+  dependencies: text("dependencies").array(),
+
+  // Trigger (quando executar automaticamente)
+  triggerType: varchar("trigger_type", { length: 30 }), // 'schedule' | 'event' | 'manual' | 'webhook'
+  triggerConfig: jsonb("trigger_config"),
+
+  // Corpo da skill (Markdown com blocos /skill/, /kg/, /tool/, etc.)
+  body: text("body"),
+
+  // Schemas de entrada/saída
+  parametersSchema: jsonb("parameters_schema"),
+  returnSchema: jsonb("return_schema"),
+
+  // Estado
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // 'draft' | 'active' | 'archived'
+  isSystem: boolean("is_system").default(false),
+
+  // Autoria e rastreamento
+  author: varchar("author", { length: 255 }),
+  createdBy: varchar("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const skillExecutions = pgTable("skill_executions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  skillId: uuid("skill_id").notNull().references(() => arcadiaSkills.id, { onDelete: "cascade" }),
+
+  // Contexto de execução
+  tenantId: integer("tenant_id").references(() => tenants.id),
+  companyId: integer("company_id"),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+
+  // Origem da execução
+  triggeredBy: varchar("triggered_by", { length: 30 }), // 'manual' | 'schedule' | 'automation' | 'agent' | 'openclaw'
+  automationId: integer("automation_id"),
+  parentExecutionId: uuid("parent_execution_id"), // para skills compostas
+
+  // Dados
+  inputParams: jsonb("input_params"),
+  outputResult: jsonb("output_result"),
+  resolvedDependencies: jsonb("resolved_dependencies"), // cache das refs / resolvidas
+
+  // Estado
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // 'pending' | 'running' | 'success' | 'error' | 'cancelled'
+  errorMessage: text("error_message"),
+  durationMs: integer("duration_ms"),
+
+  // Imutabilidade / auditoria
+  auditHash: varchar("audit_hash", { length: 64 }),
+
+  startedAt: timestamp("started_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertArcadiaSkillSchema = createInsertSchema(arcadiaSkills).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSkillExecutionSchema = createInsertSchema(skillExecutions).omit({ id: true, startedAt: true });
+
+export type ArcadiaSkill = typeof arcadiaSkills.$inferSelect;
+export type InsertArcadiaSkill = z.infer<typeof insertArcadiaSkillSchema>;
+export type SkillExecution = typeof skillExecutions.$inferSelect;
+export type InsertSkillExecution = z.infer<typeof insertSkillExecutionSchema>;

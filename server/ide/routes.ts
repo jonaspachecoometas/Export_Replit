@@ -174,7 +174,7 @@ Responda APENAS com o código, sem explicações adicionais.`;
       : prompt;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "arcadia-agent",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -228,7 +228,7 @@ Use português brasileiro.`;
       : message;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "arcadia-agent",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

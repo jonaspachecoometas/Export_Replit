@@ -38,8 +38,8 @@ model_list:
 
   - model_name: arcadia-agent
     litellm_params:
-      model: ollama/arcadia-agent
-      api_base: os.environ/OLLAMA_BASE_URL
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
 
   - model_name: nomic-embed-text
     litellm_params:
@@ -70,10 +70,10 @@ model_list:
   #     api_key: os.environ/ANTHROPIC_API_KEY
 
   # ── TIER 3: Groq (opt-in — inferência rápida sem dados persistidos) ──────────
-  # - model_name: groq-llama
-  #   litellm_params:
-  #     model: groq/llama-3.3-70b-versatile
-  #     api_key: os.environ/GROQ_API_KEY
+  - model_name: groq-llama
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
 
   # ── Modelo padrão do Arcádia (Manus usa este) ─────────────────────────────────
   # Prioridade: DeepSeek R1 14B (TIER 2) → llama3.2 (fallback rápido)
@@ -87,9 +87,6 @@ router_settings:
   fallbacks:
     - {"gpt-4o": ["arcadia-agent"]}
     - {"gpt-4o-mini": ["arcadia-agent"]}
-    - {"arcadia-default": ["llama3.2"]}
-    - {"arcadia-agent": ["llama3.2"]}
-    - {"arcadia-finetuned": ["deepseek-r1"]}
     - {"arcadia-embed": ["nomic-embed-text"]}
 
 litellm_settings:

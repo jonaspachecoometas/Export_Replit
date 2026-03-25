@@ -31,7 +31,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 // Apply auth to all routes
 router.use(requireAuth);
 
-// Helper to get tenant ID from request header or user's first tenant
+// Helper to get tenant ID from request header or user's first tenant (auto-creates if none)
 async function getTenantId(req: Request): Promise<number | null> {
   const userId = (req.user as any).id;
   const headerTenantId = req.headers["x-tenant-id"];
@@ -40,8 +40,13 @@ async function getTenantId(req: Request): Promise<number | null> {
     const isMember = await compassStorage.isUserInTenant(userId, tenantId);
     return isMember ? tenantId : null;
   }
-  const tenants = await compassStorage.getUserTenants(userId);
-  return tenants.length > 0 ? tenants[0].id : null;
+  const userTenants = await compassStorage.getUserTenants(userId);
+  if (userTenants.length > 0) return userTenants[0].id;
+  // Auto-cria tenant padrão para o usuário na primeira vez
+  const userName = (req.user as any).name || (req.user as any).username || "Minha Organização";
+  const tenant = await compassStorage.createTenant({ name: userName, plan: "free", status: "active" });
+  await compassStorage.addUserToTenant({ tenantId: tenant.id, userId, role: "owner", isOwner: "true" });
+  return tenant.id;
 }
 
 // Validate tenant membership

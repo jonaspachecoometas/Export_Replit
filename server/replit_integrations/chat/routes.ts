@@ -1,10 +1,33 @@
 import type { Express, Request, Response } from "express";
 import OpenAI from "openai";
 import { chatStorage } from "./storage";
-import { buildPromptWithContext } from "./prompt";
+import { buildPromptWithContext, buildAgentPromptForChat } from "./prompt";
 import { compassStorage } from "../../compass/storage";
 import { PDFParse } from "pdf-parse";
 import { learningService } from "../../learning/service";
+import { manusService } from "../../manus/service";
+
+const TOOL_LABELS: Record<string, string> = {
+  web_search: "🔍 Pesquisando na web",
+  deep_research: "🔬 Pesquisa profunda",
+  knowledge_query: "📚 Consultando base de conhecimento",
+  erp_query: "🏢 Consultando ERP",
+  bi_execute_query: "📊 Executando consulta BI",
+  bi_create_chart: "📈 Gerando gráfico",
+  bi_create_dashboard: "🗂️ Criando dashboard",
+  bi_list_tables: "📋 Listando tabelas",
+  bi_get_table_columns: "🔎 Verificando colunas",
+  bi_create_dataset: "🗃️ Criando dataset",
+  bi_stats: "📉 Carregando estatísticas BI",
+  semantic_search: "🧠 Buscando conhecimento",
+  learn_url: "📖 Aprendendo URL",
+  web_browse: "🌐 Navegando na web",
+  generate_chart: "📊 Gerando gráfico",
+  analyze_file: "📄 Analisando arquivo",
+  calculate: "🔢 Calculando",
+  list_agents: "🤖 Listando agentes",
+  call_agent: "📡 Comunicando com agente",
+};
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -258,10 +281,10 @@ export function registerChatRoutes(app: Express): void {
         }
       }
 
-      const systemPrompt = buildPromptWithContext(knowledgeContext, processedFileContent || fileContent, diagnosticContext);
+      const systemPrompt = buildAgentPromptForChat(knowledgeContext, processedFileContent || fileContent, diagnosticContext);
 
       const messages = await chatStorage.getMessagesByConversation(conversationId);
-      const chatMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      const loopMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         { role: "system", content: systemPrompt },
         ...messages.map((m) => ({
           role: m.role as "user" | "assistant",
@@ -273,20 +296,69 @@ export function registerChatRoutes(app: Express): void {
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const stream = await openai.chat.completions.create({
-        model: "arcadia-agent",
-        messages: chatMessages,
-        stream: true,
-        max_tokens: 4096,
-      });
-
       let fullResponse = "";
+      const MAX_STEPS = 8;
 
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          fullResponse += content;
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      for (let step = 0; step < MAX_STEPS; step++) {
+        const completion = await openai.chat.completions.create({
+          model: "arcadia-agent",
+          messages: loopMessages,
+          stream: false,
+          max_tokens: 3000,
+        });
+
+        const rawText = completion.choices[0]?.message?.content || "";
+        loopMessages.push({ role: "assistant", content: rawText });
+
+        // Try to parse as Manus JSON format
+        let parsed: { thought?: string; tool?: string; tool_input?: Record<string, any> } | null = null;
+        try {
+          const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+        } catch { /* not JSON */ }
+
+        if (parsed?.tool === "finish") {
+          // Stream the final answer
+          const answer = parsed.tool_input?.answer || rawText;
+          fullResponse = answer;
+          // Stream in small chunks for SSE effect
+          const words = answer.split(/(\s+)/);
+          for (const word of words) {
+            res.write(`data: ${JSON.stringify({ content: word })}\n\n`);
+          }
+          break;
+        } else if (parsed?.tool && parsed.tool !== "finish") {
+          // Execute tool and continue loop
+          const label = TOOL_LABELS[parsed.tool] || `⚙️ ${parsed.tool}`;
+          res.write(`data: ${JSON.stringify({ tool_status: label })}\n\n`);
+
+          try {
+            const toolResult = await manusService.executeTool(parsed.tool, parsed.tool_input || {}, userId);
+            loopMessages.push({
+              role: "user",
+              content: `[Resultado de ${parsed.tool}]: ${toolResult.output}`,
+            });
+          } catch (toolErr) {
+            loopMessages.push({
+              role: "user",
+              content: `[Erro em ${parsed.tool}]: Ferramenta falhou, tente outra abordagem.`,
+            });
+          }
+        } else if (step === 0) {
+          // First step returned plain text — force JSON retry
+          loopMessages.push({
+            role: "user",
+            content: `ERRO: Você não respondeu em JSON. Responda APENAS em JSON no formato: {"thought": "...", "tool": "finish", "tool_input": {"answer": "..."}}`,
+          });
+          continue;
+        } else {
+          // Still plain text after retry — stream as-is
+          fullResponse = rawText;
+          const words = rawText.split(/(\s+)/);
+          for (const word of words) {
+            res.write(`data: ${JSON.stringify({ content: word })}\n\n`);
+          }
+          break;
         }
       }
 

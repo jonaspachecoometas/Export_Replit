@@ -757,7 +757,7 @@ router.post("/projects/:projectId/import-financial", requireAuth, upload.single(
     const dataPreview = JSON.stringify(rawData.slice(0, 10), null, 2);
     
     const agentResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "arcadia-agent",
       messages: [
         {
           role: "system",
@@ -917,7 +917,7 @@ router.post("/projects/:projectId/checklist/:itemId/agent-assist", requireAuth, 
       : `Empresa: ${project.companyName}\nSetor: ${project.sector}\n\nInformações fornecidas:\n${content}`;
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "arcadia-agent",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userContent }
@@ -1853,7 +1853,7 @@ Para cada item, indique: item (texto), impact (low/medium/high), valuationReleva
 Responda em JSON: { strengths: [...], weaknesses: [...], opportunities: [...], threats: [...] }`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "arcadia-agent",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
     });
@@ -1997,7 +1997,7 @@ SWOT: ${swot.length} itens
 Responda de forma consultiva, em português, com foco em recomendações acionáveis.`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "arcadia-agent",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
@@ -2076,7 +2076,7 @@ SWOT: ${swot.length} itens | PDCA: ${pdca.length} ações | Ativos: ${assets.len
 Gere em formato HTML com seções claras. Use formatação profissional.`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "arcadia-agent",
       messages: [{ role: "user", content: prompt }],
     });
 

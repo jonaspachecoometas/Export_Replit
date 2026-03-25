@@ -63,7 +63,25 @@ services:
         condition: service_healthy
     profiles: [bi]
 
+  # ── Neo4j (Knowledge Graph) ─────────────────────────────────────────────────
+  # Ativar com: docker compose --profile kg up
+  neo4j:
+    image: neo4j:5
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-arcadia123}
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    profiles: [kg]
+
 volumes:
   pgdata:
   uploads:
   superset_home:
+  neo4j_data:
+  neo4j_logs:

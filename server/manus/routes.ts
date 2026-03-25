@@ -1,5 +1,8 @@
 import type { Express, Request, Response } from "express";
 import { manusService } from "./service";
+import { db } from "../../db/index";
+import { manusRuns, manusSteps } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 export function registerManusRoutes(app: Express): void {
   const handleManusRun = async (req: Request, res: Response) => {
@@ -53,12 +56,48 @@ export function registerManusRoutes(app: Express): void {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const runs = await manusService.getUserRuns(req.user!.id);
       res.json(runs);
     } catch (error) {
       console.error("Manus get runs error:", error);
       res.status(500).json({ error: "Failed to get runs" });
+    }
+  });
+
+  app.delete("/api/manus/runs/:id", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const runId = parseInt(req.params.id);
+      manusService.cancelRun(runId); // sinaliza o loop para parar
+      await db.delete(manusSteps).where(eq(manusSteps.runId, runId));
+      await db.delete(manusRuns).where(and(eq(manusRuns.id, runId), eq(manusRuns.userId, req.user!.id)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Manus delete run error:", error);
+      res.status(500).json({ error: "Failed to delete run" });
+    }
+  });
+
+  app.delete("/api/manus/runs", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const userRuns = await manusService.getUserRuns(req.user!.id);
+      const runIds = userRuns.map((r: any) => r.id);
+      if (runIds.length > 0) {
+        for (const id of runIds) {
+          await db.delete(manusSteps).where(eq(manusSteps.runId, id));
+        }
+        await db.delete(manusRuns).where(eq(manusRuns.userId, req.user!.id));
+      }
+      res.json({ success: true, deleted: runIds.length });
+    } catch (error) {
+      console.error("Manus delete all runs error:", error);
+      res.status(500).json({ error: "Failed to delete runs" });
     }
   });
 }
