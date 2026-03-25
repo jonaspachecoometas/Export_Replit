@@ -212,9 +212,10 @@ services:
     restart: always
     environment:
       MIROFLOW_PORT: "8006"
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://10.0.7.1:11434}
+      OLLAMA_BASE_URL: "http://ollama-ia1upsekrad96at5hq97e4qa:11434"
     networks:
       - arcadia-internal
+      - ollama-net
 
   # ── Microserviços Python ─────────────────────────────────────────────────────
   contabil:
